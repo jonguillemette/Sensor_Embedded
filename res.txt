@@ -1,0 +1,94 @@
+Compiling file: main.c
+main.c:119:1: warning: data definition has no type or storage class [enabled by default]
+ IS_SRVC_CHANGED_CHARACT_PRESENT = true;
+ ^
+main.c:119:1: warning: type defaults to 'int' in declaration of 'IS_SRVC_CHANGED_CHARACT_PRESENT' [enabled by default]
+main.c: In function 'services_init':
+main.c:290:13: warning: unused variable 'k' [-Wunused-variable]
+     uint8_t k;
+             ^
+main.c: At top level:
+main.c:108:46: warning: 'm_adv_params' defined but not used [-Wunused-variable]
+ static ble_gap_adv_params_t                  m_adv_params;                              /**< Parameters to be passed to the stack when starting advertising. */
+                                              ^
+In file included from main.c:34:0:
+main.c: In function 'ble_evt_dispatch':
+../../../components/libraries/util/app_error.h:62:12: warning: 'err_code' may be used uninitialized in this function [-Wmaybe-uninitialized]
+         if (LOCAL_ERR_CODE != NRF_SUCCESS)                  \
+            ^
+main.c:393:14: note: 'err_code' was declared here
+     uint32_t err_code;
+              ^
+Compiling file: system_nrf51.c
+Compiling file: usart.c
+usart.c: In function 'printUSART0':
+usart.c:38:2: warning: pointer targets in passing argument 1 of 'getASCIIString' differ in signedness [-Wpointer-sign]
+  getASCIIString(str, num, r_str);
+  ^
+In file included from usart.h:7:0,
+                 from usart.c:1:
+misc.h:10:6: note: expected 'uint8_t *' but argument is of type 'char *'
+ void getASCIIString(uint8_t * str, uint32_t  * num, uint8_t * r_str);
+      ^
+Compiling file: misc.c
+misc.c: In function 'getASCIIString':
+misc.c:213:22: warning: pointer targets in initialization differ in signedness [-Wpointer-sign]
+    uint8_t * t_num = (char *)num;
+                      ^
+Compiling file: ble_phy.c
+ble_phy.c: In function 'sendDataPHYSENS':
+ble_phy.c:182:23: warning: assignment discards 'volatile' qualifier from pointer target type [enabled by default]
+   hvx_params.p_data   = g_sensor_data[g_sensor_ridx];
+                       ^
+Compiling file: sensor.c
+sensor.c: In function 'initSENSOR':
+sensor.c:12:11: warning: unused variable 'utmp32' [-Wunused-variable]
+  uint32_t utmp32;
+           ^
+sensor.c: In function 'initH3LIS331':
+sensor.c:61:2: warning: implicit declaration of function 'rxtxSPI0' [-Wimplicit-function-declaration]
+  r_val = rxtxSPI0(2, tx_data, rx_data);
+  ^
+sensor.c: In function 'getDataSENSOR':
+sensor.c:145:10: warning: unused variable 'tx_data' [-Wunused-variable]
+  uint8_t tx_data[10];
+          ^
+sensor.c: In function 'dispDataH3LIS331':
+sensor.c:228:8: warning: pointer targets in assignment differ in signedness [-Wpointer-sign]
+  pdata = data;
+        ^
+sensor.c: In function 'dispDataLSM330':
+sensor.c:253:8: warning: pointer targets in assignment differ in signedness [-Wpointer-sign]
+  pdata = a_data;
+        ^
+sensor.c:270:8: warning: pointer targets in assignment differ in signedness [-Wpointer-sign]
+  pdata = g_data;
+        ^
+Compiling file: spi.c
+Compiling file: delay.c
+Compiling file: led.c
+Compiling file: ble_srv_common.c
+Compiling file: ble_error_log.c
+Compiling file: ble_advdata.c
+Compiling file: ble_radio_notification.c
+Compiling file: ble_debug_assert_handler.c
+Compiling file: ble_conn_params.c
+Compiling file: softdevice_handler.c
+Compiling file: pstorage.c
+Compiling file: nrf_delay.c
+Compiling file: app_scheduler.c
+Compiling file: app_timer.c
+Compiling file: app_timer_appsh.c
+Compiling file: nrf_drv_gpiote.c
+Compiling file: nrf_drv_common.c
+Compiling file: bootloader_util.c
+Compiling file: ble_dfu.c
+Compiling file: dfu_app_handler.c
+Compiling file: device_manager_peripheral.c
+Compiling file: gcc_startup_nrf51.s
+"../../../gcc-arm-none-eabi-4_8-2014q2/bin/arm-none-eabi-gcc" -L"../../../gcc-arm-none-eabi-4_8-2014q2/arm-none-eabi/lib/armv6-m" -L"../../../gcc-arm-none-eabi-4_8-2014q2/lib/gcc/arm-none-eabi/4.8.4/armv6-m" -Xlinker -Map=build/main.map -mcpu=cortex-m0 -mthumb -mabi=aapcs -L ../../../templates/gcc/ -Tgcc_nrf51_s110_xxaa.ld  build/main.o build/system_nrf51.o build/usart.o build/misc.o build/ble_phy.o build/sensor.o build/spi.o build/delay.o build/led.o build/ble_srv_common.o build/ble_error_log.o build/ble_advdata.o build/ble_radio_notification.o build/ble_debug_assert_handler.o build/ble_conn_params.o build/softdevice_handler.o build/pstorage.o build/nrf_delay.o build/app_scheduler.o build/app_timer.o build/app_timer_appsh.o build/nrf_drv_gpiote.o build/nrf_drv_common.o build/bootloader_util.o build/ble_dfu.o build/dfu_app_handler.o build/device_manager_peripheral.o build/gcc_startup_nrf51.o  -o build/main.out
+"../../../gcc-arm-none-eabi-4_8-2014q2/bin/arm-none-eabi-objcopy" -O binary build/main.out build/main.bin
+"../../../gcc-arm-none-eabi-4_8-2014q2/bin/arm-none-eabi-objcopy" -O ihex build/main.out build/main.hex
+"../../../gcc-arm-none-eabi-4_8-2014q2/bin/arm-none-eabi-size" -B  build/main.out
+   text	   data	    bss	    dec	    hex	filename
+  31540	   1108	   2884	  35532	   8acc	build/main.out
