@@ -47,6 +47,13 @@ void initSENSOR(void)
     }
 	printUSART0("LSM330 init     [DONE]\n",0);
 	
+	if(!initADXL())													// init LSM330 sensor
+	{
+       printUSART0("ADXL init     [ERROR]\n",0);
+       while(1);
+    }
+	printUSART0("ADXL init     [DONE]\n",0);
+
 	NVIC_SetPriority(TIMER2_IRQn, 3);
 	
 	//initTIMER2();														// init TIMER2 with 1ms interrupt
@@ -139,6 +146,76 @@ uint8_t initLSM330(void)
 	if(r_val == 0x00)
 		return 0x00;													// SPI failed to communicate with sensor
 				
+	return 0x01;
+}
+
+
+uint8_t initADXL(void)
+{/// init ADXL362 sensor using SPI interface
+	uint8_t tx_data[3], rx_data[3];
+	uint8_t r_val;
+	
+	EN_SPI_G_ADXL;	
+
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	// setup interrupt mode
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_THRESH_ACT_L;
+	tx_data[2] = 0xFA; //250 mg
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_THRESH_ACT_H;
+	tx_data[2] = 0x02; //250 mg + 512 mg detection
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_THRESH_INACT_L;
+	tx_data[2] = 0x96; //150 mg
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_THRESH_INACT_H;
+	tx_data[2] = 0x00; //150 mg + 0g
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_TIME_INACT_L;
+	tx_data[2] = 0x1E; //Active for around 5 seconds (30 samples)
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_ACT_INACT_CTL;
+	tx_data[2] = ADXL_SET_MOTION_DETECT_MODE;
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_INTMAP2;
+	tx_data[2] = ADXL_SET_AWAKE;
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	tx_data[0] = ADXL_WRITE_REQUETS;
+	tx_data[1] = ADXL_POWER_CTL;
+	tx_data[2] = ADXL_SET_WAKEUP_START;
+	r_val = rxtxSPI0(3, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+	
 	return 0x01;
 }
 

@@ -138,18 +138,35 @@
 #define LSM330_G_SCALE_1000					0x20
 #define LSM330_G_SCALE_2000					0x30
 
+#define ADXL_WRITE_REQUETS					0x0A
+#define ADXL_THRESH_ACT_L					0x20
+#define ADXL_THRESH_ACT_H					0x21
+#define ADXL_THRESH_INACT_L					0x23
+#define ADXL_THRESH_INACT_H					0x24
+#define ADXL_TIME_INACT_L					0x25
+#define ADXL_ACT_INACT_CTL					0x27
+#define ADXL_INTMAP1						0x2A
+#define ADXL_INTMAP2						0x2B
+#define ADXL_POWER_CTL						0x2D
+
+#define ADXL_SET_AWAKE						0x40
+#define ADXL_SET_WAKEUP_START				0x0A
+#define ADXL_SET_MOTION_DETECT_MODE			0x3F
+
 #define SENSOR_COL_SIZE						20
 #define SENSOR_ROW_SIZE						20
 
 #define EN_SPI_H3LIS331		g_spi_cs_pin = (H3LIS331_SPI_CS);
 #define EN_SPI_A_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_A);
 #define EN_SPI_G_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_G);
+#define EN_SPI_ADXL362		g_spi_cs_pin = (ADXL362_SPI_CS);
 
 #define SENSOR_READY2READ					0x00
 #define SENSOR_NOT_READY2READ				0x01
 
 uint8_t initH3LIS331(void);
 uint8_t initLSM330(void);
+uint8_t initADXL(void);
 void initSENSOR(void);
 void getDataSENSOR(void);
 void dispDataH3LIS331(void);

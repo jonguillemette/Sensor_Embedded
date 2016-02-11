@@ -19,6 +19,7 @@ extern volatile uint8_t g_spi_cs_pin;
 #define SPI0_MOSI				9
 #define H3LIS331_SPI_CS			10
 #define SPI0_MISO				11
+#define ADXL362_SPI_CS			15
 
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// Pin description
@@ -31,6 +32,8 @@ extern volatile uint8_t g_spi_cs_pin;
 /// P0.09	- SPI MOSI
 /// P0.10	- SPI CS - high accelerometer
 /// P0.11	- SPI MISO
+/// P0.15   - SPI CS - ADXL
+/// P0.29   - Wake-up pin
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 
 #define SPI_DATARATE_125kbps	0x02000000

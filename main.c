@@ -9,6 +9,8 @@
 /// P0.09	- SPI MOSI
 /// P0.10	- SPI CS - high accelerometer
 /// P0.11	- SPI MISO
+/// P0.15   - SPI CS - ADXL
+/// P0.29   - Wake-up pin
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// BLE Physics primary service 0x2000 (short UUID)
 /// BLE Physics characteristics 0x2E00 (short UUID)
