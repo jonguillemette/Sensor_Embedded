@@ -31,6 +31,13 @@ void initSENSOR(void)
 	
 	initSPI0(SPI_DATARATE_4Mbps);										// init SPI interface at 4MHz
 	
+	if(!initADXL())													// init LSM330 sensor
+	{
+       printUSART0("ADXL init     [ERROR]\n",0);
+       while(1);
+    }
+	printUSART0("ADXL init     [DONE]\n",0);
+
 	return;
 		
 	if(!initH3LIS331())													// init H3LIS331 sensor
@@ -47,12 +54,7 @@ void initSENSOR(void)
     }
 	printUSART0("LSM330 init     [DONE]\n",0);
 	
-	if(!initADXL())													// init LSM330 sensor
-	{
-       printUSART0("ADXL init     [ERROR]\n",0);
-       while(1);
-    }
-	printUSART0("ADXL init     [DONE]\n",0);
+	
 
 	NVIC_SetPriority(TIMER2_IRQn, 3);
 	
@@ -155,7 +157,7 @@ uint8_t initADXL(void)
 	uint8_t tx_data[3], rx_data[3];
 	uint8_t r_val;
 	
-	EN_SPI_G_ADXL;	
+	EN_SPI_ADXL362;	
 
 	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 	// setup interrupt mode
