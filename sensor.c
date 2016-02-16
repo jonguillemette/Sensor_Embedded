@@ -38,7 +38,6 @@ void initSENSOR(void)
     }
 	printUSART0("ADXL init     [DONE]\n",0);
 
-	return;
 		
 	if(!initH3LIS331())													// init H3LIS331 sensor
 	{
