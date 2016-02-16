@@ -61,8 +61,10 @@
 #include <string.h>
 #include "nordic_common.h"
 #include "nrf.h"
+#include "nrf_drv_gpiote.h"
 #include "app_error.h"
 #include "nrf_gpio.h"
+#include "nrf_delay.h"
 #include "nrf51_bitfields.h"
 #include "ble.h"
 #include "ble_hci.h"
@@ -542,6 +544,14 @@ static void power_manage(void)
 int main(void)
 {
 	uint32_t utmp32, k, val;
+    uint32_t sleep_counter = 0;
+
+    /*nrf_drv_gpiote_init();
+    nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
+
+    nrf_drv_gpiote_out_init(29, &out_config);*/
+    nrf_gpio_cfg_sense_input(29, NRF_GPIO_PIN_NOPULL , NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_delay_ms(1);
 	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 	// Init system modules
 	//------------------------------------------------------------------
@@ -577,17 +587,33 @@ int main(void)
 	advertising_start();
 	printUSART0("-> SYS: Advertising...\n",0);
     
+    bool transmit = false;
+
     while(1)
     {
-        power_manage();
+        sleep_counter++;
+        //power_manage();
         
+        if (sleep_counter >= 10000000) {
+            initH3LIS331();
+            initLSM330();
+            NRF_POWER->SYSTEMOFF = 0x1;
+        }
+
         if(g_sensor_read_flag>0)
         {
 			getDataSENSOR();
 			g_sensor_read_flag--;
 		}
 			
-        if(g_ble_conn)
+        if(g_ble_conn) {
+            if (!transmit) {
+                transmit = true;
+                initPowerH3LIS331();
+                initPowerLSM330();
+            }
 			sendDataPHYSENS(&m_pss);
+            sleep_counter = 0;
+        }
     }
 }

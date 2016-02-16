@@ -79,9 +79,7 @@ uint8_t initH3LIS331(void)
 	// setup accelerometer parameters
 	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 	tx_data[0] = (H3LIS331_CTRL_REG_1)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	// normal work mode, 1kHz sample rate and enable all three axeses 
-	tx_data[1] = (H3LIS331_POWER_MODE_NORMAL)|(H3LIS331_ODR_1000Hz);		
-	tx_data[1] |= (H3LIS331_ENABLE_Z_AXIS)|(H3LIS331_ENABLE_Y_AXIS)|(H3LIS331_ENABLE_X_AXIS);
+	tx_data[1] = 0x00; // Power down
 	r_val = rxtxSPI0(2, tx_data, rx_data);
 	if(r_val == 0x00)													
 		return 0x00;													// SPI failed to communicate with sensor
@@ -93,6 +91,27 @@ uint8_t initH3LIS331(void)
 	if(r_val == 0x00)													// SPI failed to communicate with sensor
 		return 0x00;
 	
+	return 0x01;
+}
+
+uint8_t initPowerH3LIS331(void)
+{/// init H3LIS331 sensor using SPI interface
+	uint8_t tx_data[4], rx_data[4];
+	uint8_t r_val;
+	
+	EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
+
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	// setup accelerometer parameters
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	tx_data[0] = (H3LIS331_CTRL_REG_1)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
+	// normal work mode, 1kHz sample rate and enable all three axeses 
+	tx_data[1] = (H3LIS331_POWER_MODE_NORMAL)|(H3LIS331_ODR_1000Hz);		
+	tx_data[1] |= (H3LIS331_ENABLE_Z_AXIS)|(H3LIS331_ENABLE_Y_AXIS)|(H3LIS331_ENABLE_X_AXIS);
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)													
+		return 0x00;													// SPI failed to communicate with sensor
+
 	return 0x01;
 }
 
@@ -111,6 +130,47 @@ uint8_t initLSM330(void)
 	if(rx_data[1] != (LSM330_I2C_ADDR_G))
 		return 0x00;													// failed to detect LSM330 sensor 
 	
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	// setup gyroscope parameters
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	tx_data[0] = (LSM330_CTRL_REG1_G)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
+	tx_data[1] = LSM330_G_POWER_DOWN_MODE;
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;													// SPI failed to communicate with sensor
+		
+	tx_data[0] = (LSM330_CTRL_REG4_G)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
+	tx_data[1] = (LSM330_G_BDU)|(LSM330_G_SCALE_2000);					// 2000dps range + disable data update during read
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)	
+		return 0x00;													// SPI failed to communicate with sensor
+	
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	// setup accelerometer parameters
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 G sensor
+	
+	tx_data[0] = (LSM330_CTRL_REG1_A)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
+	tx_data[1] = LSM330_A_ODR_POWER_DOWN;
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;													// SPI failed to communicate with sensor
+		
+	tx_data[0] = (LSM330_CTRL_REG4_A)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
+	tx_data[1] = (LSM330_A_SCALE_16G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;													// SPI failed to communicate with sensor
+				
+	return 0x01;
+}
+
+uint8_t initPowerLSM330(void)
+{/// init LSM330 sensor using SPI interface
+	uint8_t tx_data[2], rx_data[2];
+	uint8_t r_val;
+
+	EN_SPI_G_LSM330;
 	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 	// setup gyroscope parameters
 	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
