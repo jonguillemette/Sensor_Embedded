@@ -306,6 +306,17 @@ uint8_t initBR25S(void)
 }
 
 uint16_t getBatteryLevel() {
+	/*uint8_t tx_data[5], rx_data[5];
+	uint16_t final_value;
+	
+	EN_SPI_BR25S;
+
+	tx_data[0] = BR25S_RDSR;
+
+	rxtxSPI0(2, tx_data, rx_data);
+	final_value = 0;
+	final_value += rx_data[1];
+	return final_value;*/
 	uint8_t tx_data[5], rx_data[5];
 	uint16_t final_value;
 	
@@ -313,10 +324,11 @@ uint16_t getBatteryLevel() {
 
 	tx_data[0] = BR25S_READ;
 	tx_data[1] = 0x00;
-	tx_data[2] = (uint8_t) (BR25S_MIN_ADDR & 0xFF);
+	tx_data[2] = 0x00;
 
 	rxtxSPI0(5, tx_data, rx_data);
-	final_value = rx_data[3];
+	final_value = 0;
+	final_value += rx_data[3];
 	final_value += rx_data[4] << 8;
 	return final_value;
 }
@@ -326,13 +338,16 @@ void setBatteryLevel(uint16_t battery_level) {
 	
 	EN_SPI_BR25S;
 
-	tx_data[0] = BR25S_READ;
-	tx_data[1] = (uint8_t) ((BR25S_MIN_ADDR & 0xFF00) >> 8);
-	tx_data[2] = (uint8_t) (BR25S_MIN_ADDR & 0xFF);
+	tx_data[0] = BR25S_WREN;
+	rxtxSPI0(1, tx_data, rx_data);
+
+	tx_data[0] = BR25S_WRITE;
+	tx_data[1] = (uint8_t) 0x00;
+	tx_data[2] = (uint8_t) 0x00;
 	tx_data[3] = (uint8_t) (battery_level & 0xFF);
 	tx_data[4] = (uint8_t) ((battery_level & 0xFF00) >> 8);
 
-	rxtxSPI0(2, tx_data, rx_data);
+	rxtxSPI0(5, tx_data, rx_data);
 }
 
 void getDataSENSOR(uint8_t battery)

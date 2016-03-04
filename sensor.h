@@ -160,7 +160,7 @@
 #define BR25S_WRITE							0x02
 #define BR25S_RDSR							0x05
 #define BR25S_WRSR							0x01
-#define BR25S_SET_MODE						0x0C
+#define BR25S_SET_MODE						0x00
 
 #define BR25S_MIN_ADDR						0x0000
 #define BR25S_MAX_ADDR						0x1FFF

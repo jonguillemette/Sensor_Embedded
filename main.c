@@ -144,14 +144,9 @@ static dm_application_instance_t         m_app_handle;                          
 
 static int m_send_packet = 0;
 
-static volatile float battery_percent = 100.0f;
-// 1/(3600*32.55*[2.4])
-float ah_quanta = 0.0035557831256755996f;
-// According to https://github.com/sparkfun/LTC4150_Coulomb_Counter_BOB/blob/master/software/Arduino/coulomb_7seg/coulomb_7seg.ino
-// And spec
-float percent_quanta = 1.0f/(150.0f/1000.0f*281232.0f/100.0f);
 uint16_t battery_max = 42185;
 volatile uint16_t battery_actual = 42185;
+volatile uint8_t symbol = 0;
 
 typedef enum 
 {
@@ -594,10 +589,17 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     if (nrf_gpio_pin_read(7) == 1) {
         battery_actual++;
+        symbol = 128;
     } else {
         battery_actual--;
+        symbol = 0;
     }
-    
+    if (battery_actual > battery_max) {
+        battery_actual = battery_max;
+    }
+    if (battery_actual < 5) {
+        battery_actual = 5;
+    }    
 }
 
 int main(void)
@@ -606,7 +608,7 @@ int main(void)
     uint32_t sleep_counter = 0;
     uint8_t wakeup = 0;
     uint32_t battery_percent_int = 0;
-    uint32_t max_counter = 3125000;
+    uint32_t max_counter = 6125000;
     uint8_t direction = 0;
     // 0 = don't care, 1 = -, 2 = +
     
@@ -669,6 +671,7 @@ int main(void)
     sec_params_init();
     
 	initSENSOR();
+    nrf_delay_ms(5); // EEPROM save
 	advertising_start();
 	printUSART0("-> SYS: Advertising...\n",0);
     
@@ -684,36 +687,23 @@ int main(void)
     nrf_drv_gpiote_in_event_enable(6, true);
 
 
-    /*if (wakeup == 0) {
+    if (wakeup == 0) {
         // Just update the battery and go to sleep
-        // Get battery value
-        battery_actual = getBatteryLevel();
-        battery_actual = 0x75;
-
-        // Put some residual in the value, prevent looping
-        if (battery_actual <= 5) {
-            battery_actual = 5;
-        }
-
-        // Top it
-        if (battery_actual > battery_max) {
-            battery_actual = battery_max;
-        }
-
-
-        // Set battery value
-        setBatteryLevel(battery_actual);
-        max_counter = 3125000; //TODO delete one zero
         
-    }*/
+        max_counter = 312500; //TODO delete one zero
+        
+    }
 
     // Get battery level
-    battery_actual = 0x10;
+    battery_actual = getBatteryLevel();
     if (direction == 2) {
         battery_actual ++;
     } else if (direction == 1) {
         battery_actual --;
     }
+    setBatteryLevel(battery_actual);
+    nrf_delay_ms(5);
+    
     
 
     while(1)
@@ -724,14 +714,17 @@ int main(void)
             initH3LIS331();
             initLSM330();
             nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
-            nrf_delay_ms(1);
+            setBatteryLevel(battery_actual);
+            nrf_delay_ms(5);
             NRF_POWER->SYSTEMOFF = 0x1;
         }
         
         if(g_sensor_read_flag>0)
         {
             // TODO conversion
-			getDataSENSOR((uint8_t) battery_actual);
+            float battery_conv = (float)battery_actual/(float)battery_max;
+            battery_conv *= 100;
+			getDataSENSOR((uint8_t) (battery_conv) + symbol);
 			g_sensor_read_flag--;
             if (ble_mode == BLE_SHOT_MODE) {
 
@@ -748,7 +741,7 @@ int main(void)
             //sendDataPHYSENS(&m_pss);
 
             sleep_counter = 0;
-            max_counter = 3125000;
+            max_counter = 6125000;
         }
     }
 }
