@@ -38,7 +38,13 @@ void initSENSOR(void)
     }
 	printUSART0("ADXL init     [DONE]\n",0);
 
-		
+	if(!initBR25S())													// init LSM330 sensor
+	{
+       printUSART0("BR25S init     [ERROR]\n",0);
+       while(1);
+    }
+	printUSART0("BR25S init     [DONE]\n",0);
+
 	if(!initH3LIS331())													// init H3LIS331 sensor
 	{
        printUSART0("H3LIS331 init   [ERROR]\n",0);
@@ -280,11 +286,63 @@ uint8_t initADXL(void)
 	return 0x01;
 }
 
-void getDataSENSOR(void)
+uint8_t initBR25S(void)
+{/// init BR25S sensor using SPI interface
+	uint8_t tx_data[2], rx_data[2];
+	uint8_t r_val;
+	
+	EN_SPI_BR25S;	
+
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	// setup interrupt mode
+	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+	tx_data[0] = BR25S_WRSR;
+	tx_data[1] = BR25S_SET_MODE;
+	r_val = rxtxSPI0(2, tx_data, rx_data);
+	if(r_val == 0x00)
+		return 0x00;
+
+	return 0x01;
+}
+
+uint16_t getBatteryLevel() {
+	uint8_t tx_data[5], rx_data[5];
+	uint16_t final_value;
+	
+	EN_SPI_BR25S;
+
+	tx_data[0] = BR25S_READ;
+	tx_data[1] = 0x00;
+	tx_data[2] = (uint8_t) (BR25S_MIN_ADDR & 0xFF);
+
+	rxtxSPI0(5, tx_data, rx_data);
+	final_value = rx_data[3];
+	final_value += rx_data[4] << 8;
+	return final_value;
+}
+
+void setBatteryLevel(uint16_t battery_level) {
+	uint8_t tx_data[5], rx_data[5];
+	
+	EN_SPI_BR25S;
+
+	tx_data[0] = BR25S_READ;
+	tx_data[1] = (uint8_t) ((BR25S_MIN_ADDR & 0xFF00) >> 8);
+	tx_data[2] = (uint8_t) (BR25S_MIN_ADDR & 0xFF);
+	tx_data[3] = (uint8_t) (battery_level & 0xFF);
+	tx_data[4] = (uint8_t) ((battery_level & 0xFF00) >> 8);
+
+	rxtxSPI0(2, tx_data, rx_data);
+}
+
+void getDataSENSOR(uint8_t battery)
 {
+
 	uint8_t tx_data[10];
 	uint8_t data[10];
-	
+	uint16_t conversion;
+	double vector_form;
+
 	
 	if(g_sensor_widx == g_sensor_ridx)									// sensor data buffer is full
 		return;						
@@ -320,6 +378,9 @@ void getDataSENSOR(void)
 	g_sensor_data[g_sensor_widx][12] = data[1];
 	g_sensor_data[g_sensor_widx][13] = data[2];
 	
+	g_sensor_data[g_sensor_widx][14] = battery;
+	
+
 	g_sensor_widx++;													// step to next location
 	if(g_sensor_widx == (SENSOR_COL_SIZE))								// check if we have reached end of the circular buffer
 		g_sensor_widx = 0x00;

@@ -21,7 +21,11 @@ void initSPI0(uint32_t freq)
 
     NRF_GPIO->PIN_CNF[ADXL362_SPI_CS] = 0x00000001;                    // set as output
     NRF_GPIO->OUTSET = (1<<ADXL362_SPI_CS);							// set CS to high state
-	
+    
+    NRF_GPIO->PIN_CNF[BR25S_SPI_CS] = 0x00000001;                    // set as output
+    NRF_GPIO->OUTSET = (1<<BR25S_SPI_CS);                         // set CS to high state
+
+
 	NRF_SPI0->PSELSCK  = SPI0_SCK;										
 	NRF_SPI0->PSELMOSI = SPI0_MOSI;
 	NRF_SPI0->PSELMISO = SPI0_MISO;

@@ -153,6 +153,19 @@
 #define ADXL_SET_WAKEUP_START				0x0A
 #define ADXL_SET_MOTION_DETECT_MODE			0x3F
 
+
+#define BR25S_WREN							0x06
+#define BR25S_WRDI							0x04
+#define BR25S_READ							0x03
+#define BR25S_WRITE							0x02
+#define BR25S_RDSR							0x05
+#define BR25S_WRSR							0x01
+#define BR25S_SET_MODE						0x0C
+
+#define BR25S_MIN_ADDR						0x0000
+#define BR25S_MAX_ADDR						0x1FFF
+#define BR25S_MAX_WRITE_BYTE				32
+
 #define SENSOR_COL_SIZE						20
 #define SENSOR_ROW_SIZE						20
 
@@ -160,6 +173,7 @@
 #define EN_SPI_A_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_A);
 #define EN_SPI_G_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_G);
 #define EN_SPI_ADXL362		g_spi_cs_pin = (ADXL362_SPI_CS);
+#define EN_SPI_BR25S		g_spi_cs_pin = (BR25S_SPI_CS);
 
 #define SENSOR_READY2READ					0x00
 #define SENSOR_NOT_READY2READ				0x01
@@ -167,12 +181,15 @@
 uint8_t initH3LIS331(void);
 uint8_t initLSM330(void);
 uint8_t initADXL(void);
+uint8_t initBR25S(void);
 void initSENSOR(void);
-void getDataSENSOR(void);
+void getDataSENSOR(uint8_t battery);
 void dispDataH3LIS331(void);
 void dispDataLSM330(void);
 void stopTIMER2(void);
 void initTIMER2(void);
+uint16_t getBatteryLevel();
+void setBatteryLevel(uint16_t battery_level);
 
 extern volatile uint8_t g_sensor_data[SENSOR_COL_SIZE][SENSOR_ROW_SIZE];
 extern volatile uint8_t g_sensor_ridx;
@@ -180,4 +197,5 @@ extern volatile uint8_t g_sensor_widx;
 extern volatile uint16_t g_sensor_rcnt;
 extern volatile uint8_t g_sensor_read;
 extern volatile uint8_t g_sensor_read_flag;
+volatile uint8_t g_sensor_shot_data[6];
 #endif

@@ -1,15 +1,18 @@
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// Pin description
 ///------------------
+/// P0.00   - UART Tx Debug @921600 bauds
+/// P0.01   - UART Rx DEbug
 /// P0.04	- SPI CS - low accelerometer
-/// P0.05	- SPI CS - low gyroscope
-/// P0.06	- UART Tx Debug @921600 bauds
-/// P0.07	- UART Rx DEbug
+/// P0.05	- SPI CS - low 
+/// P0.06	- Int coulomb counter
+/// P0.07	- Polarity coulomb counter
 /// P0.08	- SPI SCK
 /// P0.09	- SPI MOSI
 /// P0.10	- SPI CS - high accelerometer
 /// P0.11	- SPI MISO
 /// P0.15   - SPI CS - ADXL
+/// P0.28   - SPI CS - BR25S
 /// P0.29   - Wake-up pin
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// BLE Physics primary service 0x2000 (short UUID)
@@ -90,14 +93,14 @@
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1 
 #define SCHED_MAX_EVENT_DATA_SIZE       sizeof(app_timer_event_t)                   /**< Maximum size of scheduler events. Note that scheduler BLE stack events do not contain any data, as the events are being pulled from the stack in the event handler. */
-#define SCHED_QUEUE_SIZE                10                                          /**< Maximum number of events in the scheduler queue. */
+#define SCHED_QUEUE_SIZE                20                                          /**< Maximum number of events in the scheduler queue. */
 
 
 #define NRF51822_TX_POWER_LEVEL_dBm			(4)							// accepted values are -40, -30, -20, -16, -12, -8, -4, 0, and 4 dBm).			
 
 #define DEVICE_NAME                          "Physics Sensor"                           /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                    "nRF51822"                     			/**< Manufacturer. Will be passed to Device Information Service. */
-#define APP_ADV_INTERVAL                     40                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
+#define APP_ADV_INTERVAL                     64                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS           180                                        /**< The advertising timeout in units of seconds. */
 
 #define APP_TIMER_PRESCALER                  0                                          /**< Value of the RTC1 PRESCALER register. */
@@ -108,7 +111,7 @@
 #define MAX_CONN_INTERVAL                    MSEC_TO_UNITS(10, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (1 second). */
 
 #define SLAVE_LATENCY                        0                                          /**< Slave latency. */
-#define CONN_SUP_TIMEOUT                     MSEC_TO_UNITS(4000, UNIT_10_MS)            /**< Connection supervisory timeout (4 seconds). */
+#define CONN_SUP_TIMEOUT                     MSEC_TO_UNITS(300, UNIT_10_MS)            /**< Connection supervisory timeout (4 seconds). */
 
 #define FIRST_CONN_PARAMS_UPDATE_DELAY       APP_TIMER_TICKS(500, APP_TIMER_PRESCALER) /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */
 #define NEXT_CONN_PARAMS_UPDATE_DELAY        APP_TIMER_TICKS(500, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
@@ -138,6 +141,26 @@ static ble_pss_t                             m_pss;
 
 static ble_dfu_t                         m_dfus;                                    /**< Structure used to identify the DFU service. */
 static dm_application_instance_t         m_app_handle;                              /**< Application identifier allocated by device manager */
+
+static int m_send_packet = 0;
+
+static volatile float battery_percent = 100.0f;
+// 1/(3600*32.55*[2.4])
+float ah_quanta = 0.0035557831256755996f;
+// According to https://github.com/sparkfun/LTC4150_Coulomb_Counter_BOB/blob/master/software/Arduino/coulomb_7seg/coulomb_7seg.ino
+// And spec
+float percent_quanta = 1.0f/(150.0f/1000.0f*281232.0f/100.0f);
+uint16_t battery_max = 42185;
+volatile uint16_t battery_actual = 42185;
+
+typedef enum 
+{
+    BLE_SHOT_MODE,
+    BLE_OTHER_MODE
+} ble_mode_t;
+
+
+volatile ble_mode_t ble_mode = BLE_SHOT_MODE;
 
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
@@ -383,8 +406,16 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
     switch (p_ble_evt->header.evt_id)
     {
+        case BLE_EVT_TX_COMPLETE:
+        {
+            m_send_packet = 1;
+
+            //15Hz call....
+            break;
+        } 
         case BLE_GAP_EVT_CONNECTED:
 		{
+            m_send_packet = 1;
 			initTIMER2();
 			utmp32 = g_sensor_rcnt;
 			printUSART0("-> BLE: New device connected [%d]\n",&utmp32);
@@ -440,14 +471,32 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {/// dispatch BLE stack event 
+
 	dm_ble_evt_handler(p_ble_evt);
+
+    
     ble_conn_params_on_ble_evt(p_ble_evt);
     
     ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
-	
+
+	onBleEvenPHYSEN(&m_pss, p_ble_evt);
     on_ble_evt(p_ble_evt);
-    onBleEvenPHYSEN(&m_pss, p_ble_evt);
+    
     ble_advertising_on_ble_evt(p_ble_evt);
+
+    if (g_ble_conn) {
+        while(true) {
+            uint32_t err_code = sendDataPHYSENS(&m_pss);
+            if (err_code == BLE_ERROR_NO_TX_BUFFERS ||
+                err_code == NRF_ERROR_INVALID_STATE || 
+                err_code == BLE_ERROR_GATTS_SYS_ATTR_MISSING) {
+                break;
+            } else {
+                
+            }
+        }
+    }
+    
 }
 
 static void sys_evt_dispatch(uint32_t sys_evt)
@@ -469,12 +518,12 @@ static void ble_stack_init(void)
     err_code = sd_ble_enable(&ble_enable_params);
     APP_ERROR_CHECK(err_code);
 
-    ble_gap_addr_t addr;
+    /*ble_gap_addr_t addr;
     
     err_code = sd_ble_gap_address_get(&addr);
     APP_ERROR_CHECK(err_code);
     sd_ble_gap_address_set(BLE_GAP_ADDR_CYCLE_MODE_NONE, &addr);
-    APP_ERROR_CHECK(err_code);
+    APP_ERROR_CHECK(err_code);*/
     // Subscribe for BLE events.
     err_code = softdevice_ble_evt_handler_set(ble_evt_dispatch);
     APP_ERROR_CHECK(err_code);
@@ -541,21 +590,57 @@ static void power_manage(void)
     APP_ERROR_CHECK(err_code);
 }
 
+void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+{
+    if (nrf_gpio_pin_read(7) == 1) {
+        battery_actual++;
+    } else {
+        battery_actual--;
+    }
+    
+}
+
 int main(void)
 {
 	uint32_t utmp32, k, val;
     uint32_t sleep_counter = 0;
+    uint8_t wakeup = 0;
+    uint32_t battery_percent_int = 0;
+    uint32_t max_counter = 3125000;
+    uint8_t direction = 0;
+    // 0 = don't care, 1 = -, 2 = +
+    
 
-    /*nrf_drv_gpiote_init();
+    nrf_drv_gpiote_init();
     nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
 
-    nrf_drv_gpiote_out_init(29, &out_config);*/
+
+    nrf_gpio_cfg_input(29, NRF_GPIO_PIN_NOPULL);
+    nrf_gpio_cfg_input(7, NRF_GPIO_PIN_NOPULL);
+
+    
+    if (nrf_gpio_pin_read(29) == 1) {
+        wakeup = 1;
+    }
+    else
+    {
+        if (nrf_gpio_pin_read(7) == 1) {
+            direction = 2;
+        } else {
+            direction = 1;
+        }
+    }
+
+    
     nrf_gpio_cfg_sense_input(29, NRF_GPIO_PIN_NOPULL , NRF_GPIO_PIN_SENSE_HIGH);
     nrf_delay_ms(1);
-	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+
+    
+    
+    //wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 	// Init system modules
 	//------------------------------------------------------------------
-    initUSART0(6,8,USAR0_BAUDRATE_460800);
+    initUSART0(0,1,USAR0_BAUDRATE_460800);
     //initLED();
     printUSART0("\nwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n",0);
 	printUSART0("Starting BLE Physics sensor App v2.4...\n",0);
@@ -588,32 +673,82 @@ int main(void)
 	printUSART0("-> SYS: Advertising...\n",0);
     
     bool transmit = false;
+    uint32_t err_code = 0;
+
+    // Battery level
+    
+    // Counter 
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
+    nrf_drv_gpiote_in_init(6, &in_config, in_pin_handler);
+    nrf_drv_gpiote_in_event_enable(6, true);
+
+
+    /*if (wakeup == 0) {
+        // Just update the battery and go to sleep
+        // Get battery value
+        battery_actual = getBatteryLevel();
+        battery_actual = 0x75;
+
+        // Put some residual in the value, prevent looping
+        if (battery_actual <= 5) {
+            battery_actual = 5;
+        }
+
+        // Top it
+        if (battery_actual > battery_max) {
+            battery_actual = battery_max;
+        }
+
+
+        // Set battery value
+        setBatteryLevel(battery_actual);
+        max_counter = 3125000; //TODO delete one zero
+        
+    }*/
+
+    // Get battery level
+    battery_actual = 0x10;
+    if (direction == 2) {
+        battery_actual ++;
+    } else if (direction == 1) {
+        battery_actual --;
+    }
+    
 
     while(1)
     {
         sleep_counter++;
-        //power_manage();
         
-        if (sleep_counter >= 10000000) {
+        if (sleep_counter >= max_counter) {
             initH3LIS331();
             initLSM330();
+            nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
+            nrf_delay_ms(1);
             NRF_POWER->SYSTEMOFF = 0x1;
         }
-
+        
         if(g_sensor_read_flag>0)
         {
-			getDataSENSOR();
+            // TODO conversion
+			getDataSENSOR((uint8_t) battery_actual);
 			g_sensor_read_flag--;
+            if (ble_mode == BLE_SHOT_MODE) {
+
+            }
 		}
-			
         if(g_ble_conn) {
+            
             if (!transmit) {
                 transmit = true;
                 initPowerH3LIS331();
                 initPowerLSM330();
             }
-			sendDataPHYSENS(&m_pss);
+            //power_manage();
+            //sendDataPHYSENS(&m_pss);
+
             sleep_counter = 0;
+            max_counter = 3125000;
         }
     }
 }
