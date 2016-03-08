@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 #include "spi.h"
 #include "usart.h"
 
@@ -184,6 +185,7 @@ uint8_t initADXL(void);
 uint8_t initBR25S(void);
 void initSENSOR(void);
 void getDataSENSOR(uint8_t battery);
+void prepareDataSENSOR(uint8_t battery);
 void dispDataH3LIS331(void);
 void dispDataLSM330(void);
 void stopTIMER2(void);
@@ -197,5 +199,7 @@ extern volatile uint8_t g_sensor_widx;
 extern volatile uint16_t g_sensor_rcnt;
 extern volatile uint8_t g_sensor_read;
 extern volatile uint8_t g_sensor_read_flag;
-volatile uint8_t g_sensor_shot_data[6];
+// Five rows of 6 data each
+extern volatile uint8_t g_sensor_shot_data[5][6];
+extern volatile uint8_t g_sensor_index;
 #endif

@@ -724,7 +724,7 @@ int main(void)
             // TODO conversion
             float battery_conv = (float)battery_actual/(float)battery_max;
             battery_conv *= 100;
-			getDataSENSOR((uint8_t) (battery_conv) + symbol);
+			prepareDataSENSOR((uint8_t) (battery_conv) + symbol);
 			g_sensor_read_flag--;
             if (ble_mode == BLE_SHOT_MODE) {
 

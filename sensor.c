@@ -7,6 +7,8 @@ static uint8_t g_sensor_tx_buff[10];
 volatile uint16_t g_sensor_rcnt = 0x0000;
 volatile uint8_t g_sensor_read = (SENSOR_NOT_READY2READ);
 volatile uint8_t g_sensor_read_flag = 0;
+volatile uint8_t g_sensor_shot_data[5][6];
+volatile uint8_t g_sensor_index = 0;
 
 void initSENSOR(void)
 {
@@ -306,17 +308,6 @@ uint8_t initBR25S(void)
 }
 
 uint16_t getBatteryLevel() {
-	/*uint8_t tx_data[5], rx_data[5];
-	uint16_t final_value;
-	
-	EN_SPI_BR25S;
-
-	tx_data[0] = BR25S_RDSR;
-
-	rxtxSPI0(2, tx_data, rx_data);
-	final_value = 0;
-	final_value += rx_data[1];
-	return final_value;*/
 	uint8_t tx_data[5], rx_data[5];
 	uint16_t final_value;
 	
@@ -392,6 +383,81 @@ void getDataSENSOR(uint8_t battery)
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	g_sensor_data[g_sensor_widx][12] = data[1];
 	g_sensor_data[g_sensor_widx][13] = data[2];
+	
+	g_sensor_data[g_sensor_widx][14] = battery;
+	
+
+	g_sensor_widx++;													// step to next location
+	if(g_sensor_widx == (SENSOR_COL_SIZE))								// check if we have reached end of the circular buffer
+		g_sensor_widx = 0x00;
+}
+
+double toDouble(uint8_t low, uint8_t high) {
+	uint16_t conversion_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+
+	return (double) (short) conversion_form;
+}
+
+double pythagore3(double a, double b, double c) {
+	return sqrt((a*a) + (b*b) + (c*c));
+}
+
+double pythagore2(double a, double b) {
+	return sqrt((a*a) + (b*b));
+}
+
+
+void prepareDataSENSOR(uint8_t battery)
+{
+	uint8_t tx_data[10];
+	uint8_t data[10];
+	uint16_t conversion_form;
+
+	// for H3LIS331 accelerometer we are collecting x & y data
+	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
+	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
+	rxtxSPI0(5, g_sensor_tx_buff, data);
+	conversion_form = (uint16_t) pythagore2(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16);
+	
+	g_sensor_shot_data[0][0] = conversion_form & 0xFF;
+	g_sensor_shot_data[0][1] = conversion_form>>8 & 0xFF;
+	g_sensor_data[g_sensor_widx][0] = conversion_form & 0xFF;
+	g_sensor_data[g_sensor_widx][1] = conversion_form>>8 & 0xFF;
+
+
+	
+		
+	// for LSM330 accelerometer we are collecting x, y & z data
+	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
+	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	rxtxSPI0(7, g_sensor_tx_buff, data);
+
+	conversion_form = (uint16_t) pythagore3(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16, toDouble(data[5], data[6])/16);
+	g_sensor_shot_data[0][2] = conversion_form & 0xFF;
+	g_sensor_shot_data[0][3] = conversion_form>>8 & 0xFF;
+
+	g_sensor_data[g_sensor_widx][2] = conversion_form & 0xFF;
+	g_sensor_data[g_sensor_widx][3] = conversion_form>>8 & 0xFF;
+	
+	
+	// for LSM330 gyroscope we are collecting z data
+	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
+	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	rxtxSPI0(3, g_sensor_tx_buff, data);
+
+	conversion_form = (uint16_t) (toDouble(data[3], data[4])/16);
+	// Don't care about the direction.
+	if (conversion_form < 0)
+		conversion_form *= -1;
+
+	g_sensor_shot_data[0][4] = conversion_form & 0xFF;
+	g_sensor_shot_data[0][5] = conversion_form>>8 & 0xFF;
+
+	g_sensor_data[g_sensor_widx][4] = conversion_form & 0xFF;
+	g_sensor_data[g_sensor_widx][5] = conversion_form>>8 & 0xFF;
+
 	
 	g_sensor_data[g_sensor_widx][14] = battery;
 	
