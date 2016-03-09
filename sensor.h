@@ -202,4 +202,5 @@ extern volatile uint8_t g_sensor_read_flag;
 // Five rows of 6 data each
 extern volatile uint8_t g_sensor_shot_data[5][6];
 extern volatile uint8_t g_sensor_index;
+extern volatile uint8_t settings_flag;
 #endif
