@@ -231,11 +231,18 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
     int len = p_evt_write->len;
     int iter = 0;
     if (p_evt_write->handle == p_pss->phy_sen_level_handles_w.value_handle) {
-        settings_flag = 5 + p_evt_write->len;
+        switch(p_evt_write->data[0]) {
+            case SETTINGS_NEW:
+                setSettings(&p_evt_write->data[2]);
+                break;
+            case DATA_READY:
+                // Switching mode
+                ble_mode = p_evt_write->data[1];
+                break;
+        }
+
+        settings_flag = p_evt_write->data[0] + 0x10;
     }
-    for (; iter < len; iter++) {
-        //Accessing memory
-    } 
 
     if (p_pss->is_notification_supported)
     {
@@ -256,6 +263,8 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 {
     uint32_t err_code = NRF_SUCCESS;
 	uint16_t len = (SENSOR_ROW_SIZE);
+    uint8_t data[20] = {0};
+    uint8_t iter;
 
 
 	if ((p_pss->conn_handle != BLE_CONN_HANDLE_INVALID) && p_pss->is_notification_supported)
@@ -272,7 +281,25 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		hvx_params.handle   = p_pss->phy_sen_level_handles.value_handle;
 		hvx_params.type     = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.p_len    = &len;
-		hvx_params.p_data   = g_sensor_data[g_sensor_ridx];
+        switch (ble_mode) {
+            case BLE_SETTINGS_MODE:
+                getSettings(&data[2]);
+                data[0] = SETTINGS_READ;
+                data[1] = g_battery_int;
+                break;
+            case BLE_SHOT_MODE:
+            case BLE_OTHER_MODE: 
+                // TODO mode magement
+                // Draft mode and real mode mangement
+                // Indexing later
+                for (iter=0; iter<6; iter++) {
+                    data[2+iter] = g_cooked_data[iter];
+                }
+                data[0] = DATA_DRAFT;
+                data[1] = g_battery_int;
+                break;
+        }
+		hvx_params.p_data   = data;
 		
         //nrf_delay_ms(30);
 		err_code = sd_ble_gatts_hvx(p_pss->conn_handle, &hvx_params);

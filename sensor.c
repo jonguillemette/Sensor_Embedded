@@ -341,13 +341,49 @@ void setBatteryLevel(uint16_t battery_level) {
 	rxtxSPI0(5, tx_data, rx_data);
 }
 
+// 18 bytes of settings, ptr is already prepared
+void getSettings(uint8_t* ptr) {
+	uint8_t tx_data[21], rx_data[21];
+	uint8_t i;
+	
+	EN_SPI_BR25S;
+
+	tx_data[0] = BR25S_READ;
+	tx_data[1] = BR25S_ADDR_SETTINGS & 0xFF;
+	tx_data[2] = BR25S_ADDR_SETTINGS >> 8;
+
+	rxtxSPI0(21, tx_data, rx_data);
+	
+	for(i=0; i<18; i++) {
+		ptr[i] = rx_data[3+i]; 
+	}
+}
+
+// 18 bytes of settings, ptr is already prepared
+void setSettings(uint8_t* ptr) {
+	uint8_t tx_data[21], rx_data[21];
+	uint8_t i;
+	
+	EN_SPI_BR25S;
+
+	tx_data[0] = BR25S_WREN;
+	rxtxSPI0(1, tx_data, rx_data);
+
+	tx_data[0] = BR25S_WRITE;
+	tx_data[1] = BR25S_ADDR_SETTINGS & 0xFF;
+	tx_data[2] = BR25S_ADDR_SETTINGS >> 8;
+	for(i=0; i<18; i++) {
+		tx_data[3+i] = ptr[i];
+	}
+
+	rxtxSPI0(21, tx_data, rx_data);
+}
+
 void getDataSENSOR(uint8_t battery)
 {
 
 	uint8_t tx_data[10];
 	uint8_t data[10];
-	uint16_t conversion;
-	double vector_form;
 
 	
 	if(g_sensor_widx == g_sensor_ridx)									// sensor data buffer is full
@@ -409,6 +445,7 @@ double pythagore2(double a, double b) {
 }
 
 
+//TODO set treshold
 void prepareDataSENSOR(uint8_t battery)
 {
 	uint8_t tx_data[10];
@@ -421,8 +458,8 @@ void prepareDataSENSOR(uint8_t battery)
 	rxtxSPI0(5, g_sensor_tx_buff, data);
 	conversion_form = (uint16_t) pythagore2(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16);
 	
-	g_sensor_shot_data[0][0] = conversion_form & 0xFF;
-	g_sensor_shot_data[0][1] = conversion_form>>8 & 0xFF;
+	g_cooked_data[0] = conversion_form & 0xFF;
+	g_cooked_data[1] = conversion_form>>8 & 0xFF;
 	g_sensor_data[g_sensor_widx][0] = conversion_form & 0xFF;
 	g_sensor_data[g_sensor_widx][1] = conversion_form>>8 & 0xFF;
 
@@ -435,8 +472,8 @@ void prepareDataSENSOR(uint8_t battery)
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
 	conversion_form = (uint16_t) pythagore3(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16, toDouble(data[5], data[6])/16);
-	g_sensor_shot_data[0][2] = conversion_form & 0xFF;
-	g_sensor_shot_data[0][3] = conversion_form>>8 & 0xFF;
+	g_cooked_data[2] = conversion_form & 0xFF;
+	g_cooked_data[3] = conversion_form>>8 & 0xFF;
 
 	g_sensor_data[g_sensor_widx][2] = conversion_form & 0xFF;
 	g_sensor_data[g_sensor_widx][3] = conversion_form>>8 & 0xFF;
@@ -452,14 +489,16 @@ void prepareDataSENSOR(uint8_t battery)
 	if (conversion_form < 0)
 		conversion_form *= -1;
 
-	g_sensor_shot_data[0][4] = conversion_form & 0xFF;
-	g_sensor_shot_data[0][5] = conversion_form>>8 & 0xFF;
+	g_cooked_data[4] = conversion_form & 0xFF;
+	g_cooked_data[5] = conversion_form>>8 & 0xFF;
 
 	g_sensor_data[g_sensor_widx][4] = conversion_form & 0xFF;
 	g_sensor_data[g_sensor_widx][5] = conversion_form>>8 & 0xFF;
 
 	
 	g_sensor_data[g_sensor_widx][14] = battery;
+	
+	g_sensor_data[g_sensor_widx][15] = settings_flag;
 	
 
 	g_sensor_widx++;													// step to next location

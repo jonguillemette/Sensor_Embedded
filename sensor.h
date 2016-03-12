@@ -165,6 +165,9 @@
 
 #define BR25S_MIN_ADDR						0x0000
 #define BR25S_MAX_ADDR						0x1FFF
+#define BR25S_ADDR_BATTERY					0x0000
+#define BR25S_ADDR_SETTINGS					0x0004
+#define BR25S_ADDR_DATA						0x0020
 #define BR25S_MAX_WRITE_BYTE				32
 
 #define SENSOR_COL_SIZE						20
@@ -192,6 +195,9 @@ void stopTIMER2(void);
 void initTIMER2(void);
 uint16_t getBatteryLevel();
 void setBatteryLevel(uint16_t battery_level);
+void getSettings(uint8_t* ptr);
+void setSettings(uint8_t* ptr);
+
 
 extern volatile uint8_t g_sensor_data[SENSOR_COL_SIZE][SENSOR_ROW_SIZE];
 extern volatile uint8_t g_sensor_ridx;
@@ -200,7 +206,7 @@ extern volatile uint16_t g_sensor_rcnt;
 extern volatile uint8_t g_sensor_read;
 extern volatile uint8_t g_sensor_read_flag;
 // Five rows of 6 data each
-extern volatile uint8_t g_sensor_shot_data[5][6];
+extern volatile uint8_t g_cooked_data[6];
 extern volatile uint8_t g_sensor_index;
 extern volatile uint8_t settings_flag;
 #endif

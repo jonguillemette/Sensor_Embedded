@@ -144,18 +144,23 @@ static dm_application_instance_t         m_app_handle;                          
 
 static int m_send_packet = 0;
 
+// Battery
 uint16_t battery_max = 42185;
 volatile uint16_t battery_actual = 42185;
 volatile uint8_t symbol = 0;
+volatile uint8_t g_battery_int;
 
-typedef enum 
-{
-    BLE_SHOT_MODE,
-    BLE_OTHER_MODE
-} ble_mode_t;
+// Shot mode
+volatile double minimal_noise = 0.1;
+volatile double threshold = 4; //TODO Settings for calibration
+volatile uint8_t settings_flag = 0;
 
+// Mode management
+volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
 
-volatile ble_mode_t ble_mode = BLE_SHOT_MODE;
+// Sensor intermed
+volatile uint8_t g_cooked_data[6];
+volatile uint8_t g_sensor_shot_data[5][6];
 
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
@@ -724,11 +729,10 @@ int main(void)
             // TODO conversion
             float battery_conv = (float)battery_actual/(float)battery_max;
             battery_conv *= 100;
-			prepareDataSENSOR((uint8_t) (battery_conv) + symbol);
-			g_sensor_read_flag--;
-            if (ble_mode == BLE_SHOT_MODE) {
-
-            }
+            g_battery_int = (uint8_t) (battery_conv) + symbol;
+			prepareDataSENSOR(g_battery_int);
+			//getDataSENSOR((uint8_t) (battery_conv) + symbol);
+            g_sensor_read_flag--;
 		}
         if(g_ble_conn) {
             
