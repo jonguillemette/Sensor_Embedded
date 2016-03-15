@@ -161,7 +161,7 @@ volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
 volatile uint8_t g_cooked_data[6];
 volatile uint8_t g_sensor_shot_data[5][6];
 volatile uint8_t g_settings[18];
-volatile uint8_t g_data[24]; //Data at the same time
+volatile uint8_t g_data[30]; //Data at the same time
 volatile uint8_t g_index_data = 0; 
 volatile uint16_t g_real_index = 0;
 volatile uint8_t g_valid = 1;
@@ -741,16 +741,15 @@ int main(void)
                 g_data[g_index_data] = g_cooked_data[i];
                 g_index_data++;
             }
-            getSettings(g_settings);
-            /*if (g_index_data >= 23) { //Send data to memory
+            if (g_index_data >= 29) { //Send data to memory
                 //TODO Index management
                 //TODO Detect threshold...
                 getSettings(g_settings);
                 g_real_index = 0; //Index management inside
                 setDatas(g_data, 24, g_real_index);
-                
+                g_index_data = 0;
                 //g_valid = 0;
-            }*/
+            }
             g_sensor_read_flag--;
 		}
         if(g_ble_conn) {

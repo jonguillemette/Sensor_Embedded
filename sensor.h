@@ -211,7 +211,7 @@ extern volatile uint8_t g_sensor_read_flag;
 extern volatile uint8_t g_cooked_data[6];
 extern volatile uint8_t g_sensor_index;
 extern volatile uint8_t settings_flag;
-extern volatile uint8_t g_data[24];
+extern volatile uint8_t g_data[30];
 extern volatile uint8_t g_index_data; 
 extern volatile uint16_t g_real_index;
 extern volatile uint8_t g_settings[18];
