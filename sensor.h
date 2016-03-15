@@ -188,7 +188,7 @@ uint8_t initADXL(void);
 uint8_t initBR25S(void);
 void initSENSOR(void);
 void getDataSENSOR(uint8_t battery);
-void prepareDataSENSOR(uint8_t battery);
+uint8_t prepareDataSENSOR(uint8_t battery);
 void dispDataH3LIS331(void);
 void dispDataLSM330(void);
 void stopTIMER2(void);

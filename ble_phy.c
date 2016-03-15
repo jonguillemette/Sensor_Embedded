@@ -233,11 +233,10 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
     if (p_evt_write->handle == p_pss->phy_sen_level_handles_w.value_handle) {
         switch(p_evt_write->data[0]) {
             case SETTINGS_NEW:
-                if (!g_valid) 
-                    nrf_delay_ms(5);
-                g_valid = 0;
-                setSettings(&p_evt_write->data[2]);
-                g_valid = 1;
+                for (iter=0; iter<18; iter++) {
+                    g_settings_new[iter] = p_evt_write->data[2+iter];
+                    g_handle_settings = 1;
+                }
                 settings_flag = len;
                 break;
             case DATA_READY:

@@ -377,7 +377,6 @@ void setSettings(uint8_t* ptr) {
 	}
 
 	rxtxSPI0(21, tx_data, rx_data);
-	nrf_delay_ms(5);
 }
 
 void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
@@ -485,17 +484,24 @@ double pythagore2(double a, double b) {
 }
 
 
-//TODO set treshold
-void prepareDataSENSOR(uint8_t battery)
+// Return value: 0 below threshold
+// value : 1 exceed threshold
+uint8_t prepareDataSENSOR(uint8_t battery)
 {
 	// TODO Use threshold
 	uint8_t tx_data[10];
 	uint8_t data[10];
 	uint16_t conversion_form;
-	uint16_t low_accel_noise = g_settings[8];
-	uint16_t high_accel_noise = g_settings[7];
-	uint16_t gyro_noise = g_settings[9];
+	uint16_t low_accel_noise = g_settings[6];
+	uint16_t high_accel_noise = g_settings[5];
+	uint16_t gyro_noise = g_settings[7];
 	double convert;
+	uint16_t thresh_high = (uint16_t) (g_settings[2])<<8;
+	thresh_high |= g_settings[1];
+	uint16_t thresh_low = (uint16_t) (g_settings[4])<<8;
+	thresh_low |= g_settings[3];
+	uint8_t value_ret = 0;
+
 
 	// for H3LIS331 accelerometer we are collecting x & y data
 	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
@@ -507,6 +513,10 @@ void prepareDataSENSOR(uint8_t battery)
 		conversion_form -= high_accel_noise;
 	else
 		conversion_form = 0;
+
+	if (thresh_high != 0) {
+		value_ret = (conversion_form >= thresh_high);
+	}
 
 	g_cooked_data[0] = conversion_form & 0xFF;
 	g_cooked_data[1] = conversion_form>>8 & 0xFF;
@@ -525,6 +535,10 @@ void prepareDataSENSOR(uint8_t battery)
 		conversion_form -= low_accel_noise;
 	else
 		conversion_form = 0;
+
+	if (thresh_high == 0) {
+		value_ret = (conversion_form >= thresh_low);
+	}
 
 	g_cooked_data[2] = conversion_form & 0xFF;
 	g_cooked_data[3] = conversion_form>>8 & 0xFF;
@@ -565,6 +579,8 @@ void prepareDataSENSOR(uint8_t battery)
 	g_sensor_widx++;													// step to next location
 	if(g_sensor_widx == (SENSOR_COL_SIZE))								// check if we have reached end of the circular buffer
 		g_sensor_widx = 0x00;
+
+	return value_ret;
 }
 	
 void initTIMER2(void)

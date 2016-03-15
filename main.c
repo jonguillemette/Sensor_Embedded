@@ -161,6 +161,8 @@ volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
 volatile uint8_t g_cooked_data[6];
 volatile uint8_t g_sensor_shot_data[5][6];
 volatile uint8_t g_settings[18];
+volatile uint8_t g_settings_new[18];
+volatile uint8_t g_handle_settings = 0;
 volatile uint8_t g_data[30]; //Data at the same time
 volatile uint8_t g_index_data = 0; 
 volatile uint16_t g_real_index = 0;
@@ -608,7 +610,7 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     }
     if (battery_actual < 5) {
         battery_actual = 5;
-    }    
+    } 
 }
 
 int main(void)
@@ -620,7 +622,7 @@ int main(void)
     uint32_t max_counter = 6125000;
     uint8_t direction = 0;
     uint8_t i = 0;
-    // 0 = don't care, 1 = -, 2 = +
+    uint8_t value;
     
 
     nrf_drv_gpiote_init();
@@ -731,25 +733,33 @@ int main(void)
         
         if(g_sensor_read_flag>0 && g_valid)
         {
+            
             // TODO conversion
             float battery_conv = (float)battery_actual/(float)battery_max;
             battery_conv *= 100;
             g_battery_int = (uint8_t) (battery_conv) + symbol;
 			
-            prepareDataSENSOR(g_battery_int);
+            value = prepareDataSENSOR(g_battery_int);
+            g_cooked_data[5] = value;
             for (i=0; i<6; i++) {
                 g_data[g_index_data] = g_cooked_data[i];
                 g_index_data++;
             }
-            if (g_index_data >= 29) { //Send data to memory
+            if (g_index_data >= 29 && g_valid) { //Send data to memory
                 //TODO Index management
                 //TODO Detect threshold...
-                getSettings(g_settings);
-                g_real_index = 0; //Index management inside
-                setDatas(g_data, 24, g_real_index);
-                g_index_data = 0;
-                //g_valid = 0;
+                if (g_handle_settings) {
+                    g_handle_settings = 0;
+                    setSettings(g_settings_new);
+                    g_index_data = 0; // Loose for 6.25 ms of data
+                } else {
+                    getSettings(g_settings);
+                    g_real_index = 0; //Index management inside
+                    setDatas(g_data, 30, g_real_index);
+                    g_index_data = 0;
+                }
             }
+
             g_sensor_read_flag--;
 		}
         if(g_ble_conn) {
