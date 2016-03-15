@@ -197,6 +197,8 @@ uint16_t getBatteryLevel();
 void setBatteryLevel(uint16_t battery_level);
 void getSettings(uint8_t* ptr);
 void setSettings(uint8_t* ptr);
+void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
+void setDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
 
 
 extern volatile uint8_t g_sensor_data[SENSOR_COL_SIZE][SENSOR_ROW_SIZE];
@@ -209,4 +211,9 @@ extern volatile uint8_t g_sensor_read_flag;
 extern volatile uint8_t g_cooked_data[6];
 extern volatile uint8_t g_sensor_index;
 extern volatile uint8_t settings_flag;
+extern volatile uint8_t g_data[24];
+extern volatile uint8_t g_index_data; 
+extern volatile uint16_t g_real_index;
+extern volatile uint8_t g_settings[18];
+extern volatile uint8_t g_valid;
 #endif

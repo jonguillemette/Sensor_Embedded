@@ -233,15 +233,16 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
     if (p_evt_write->handle == p_pss->phy_sen_level_handles_w.value_handle) {
         switch(p_evt_write->data[0]) {
             case SETTINGS_NEW:
+                g_valid = 0;
                 setSettings(&p_evt_write->data[2]);
+                g_valid = 1;
+                settings_flag = len;
                 break;
             case DATA_READY:
                 // Switching mode
-                ble_mode = p_evt_write->data[1];
+                ble_mode = BLE_SHOT_MODE;
                 break;
         }
-
-        settings_flag = p_evt_write->data[0] + 0x10;
     }
 
     if (p_pss->is_notification_supported)
@@ -283,9 +284,11 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		hvx_params.p_len    = &len;
         switch (ble_mode) {
             case BLE_SETTINGS_MODE:
-                getSettings(&data[2]);
                 data[0] = SETTINGS_READ;
                 data[1] = g_battery_int;
+                for (iter=0; iter<18; iter++) {
+                    data[2+iter] = g_settings[iter];
+                }
                 break;
             case BLE_SHOT_MODE:
             case BLE_OTHER_MODE: 
@@ -299,6 +302,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 data[1] = g_battery_int;
                 break;
         }
+        data[19] = settings_flag;
 		hvx_params.p_data   = data;
 		
         //nrf_delay_ms(30);

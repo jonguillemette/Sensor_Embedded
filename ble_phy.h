@@ -101,5 +101,6 @@ extern volatile uint8_t settings_flag;
 extern volatile ble_mode_t ble_mode;
 extern volatile uint8_t g_battery_int;
 extern volatile uint8_t g_cooked_data[6];
+extern volatile uint8_t g_settings[18];
 #endif 
 

@@ -151,9 +151,8 @@ volatile uint8_t symbol = 0;
 volatile uint8_t g_battery_int;
 
 // Shot mode
-volatile double minimal_noise = 0.1;
-volatile double threshold = 4; //TODO Settings for calibration
 volatile uint8_t settings_flag = 0;
+
 
 // Mode management
 volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
@@ -161,6 +160,11 @@ volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
 // Sensor intermed
 volatile uint8_t g_cooked_data[6];
 volatile uint8_t g_sensor_shot_data[5][6];
+volatile uint8_t g_settings[18];
+volatile uint8_t g_data[24]; //Data at the same time
+volatile uint8_t g_index_data = 0; 
+volatile uint16_t g_real_index = 0;
+volatile uint8_t g_valid = 1;
 
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
@@ -615,6 +619,7 @@ int main(void)
     uint32_t battery_percent_int = 0;
     uint32_t max_counter = 6125000;
     uint8_t direction = 0;
+    uint8_t i = 0;
     // 0 = don't care, 1 = -, 2 = +
     
 
@@ -724,14 +729,28 @@ int main(void)
             NRF_POWER->SYSTEMOFF = 0x1;
         }
         
-        if(g_sensor_read_flag>0)
+        if(g_sensor_read_flag>0 && g_valid)
         {
             // TODO conversion
             float battery_conv = (float)battery_actual/(float)battery_max;
             battery_conv *= 100;
             g_battery_int = (uint8_t) (battery_conv) + symbol;
-			prepareDataSENSOR(g_battery_int);
-			//getDataSENSOR((uint8_t) (battery_conv) + symbol);
+			
+            prepareDataSENSOR(g_battery_int);
+            for (i=0; i<6; i++) {
+                g_data[g_index_data] = g_cooked_data[i];
+                g_index_data++;
+            }
+            getSettings(g_settings);
+            /*if (g_index_data >= 23) { //Send data to memory
+                //TODO Index management
+                //TODO Detect threshold...
+                getSettings(g_settings);
+                g_real_index = 0; //Index management inside
+                setDatas(g_data, 24, g_real_index);
+                
+                //g_valid = 0;
+            }*/
             g_sensor_read_flag--;
 		}
         if(g_ble_conn) {
