@@ -169,6 +169,8 @@
 #define BR25S_ADDR_SETTINGS					0x0004
 #define BR25S_ADDR_DATA						0x0020
 #define BR25S_MAX_WRITE_BYTE				32
+#define BR25S_CIRCULAR_BUFFER				8160
+#define BR25S_PRESPACE						300
 
 #define SENSOR_COL_SIZE						20
 #define SENSOR_ROW_SIZE						20

@@ -383,14 +383,16 @@ void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
 	uint8_t tx_data[BR25S_MAX_WRITE_BYTE + 3], rx_data[BR25S_MAX_WRITE_BYTE + 3];
 	uint8_t i;
 	
+	addr += BR25S_ADDR_DATA;
+
 	EN_SPI_BR25S;
 
 	tx_data[0] = BR25S_WREN;
 	rxtxSPI0(1, tx_data, rx_data);
 
 	tx_data[0] = BR25S_WRITE;
-	tx_data[1] = BR25S_ADDR_DATA & 0xFF;
-	tx_data[2] = BR25S_ADDR_DATA >> 8;
+	tx_data[1] = addr & 0xFF;
+	tx_data[2] = addr >> 8;
 
 	rxtxSPI0(nb_data+3, tx_data, rx_data);
 	
@@ -403,14 +405,16 @@ void setDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
 	uint8_t tx_data[BR25S_MAX_WRITE_BYTE + 3], rx_data[BR25S_MAX_WRITE_BYTE + 3];
 	uint8_t i;
 	
+	addr += BR25S_ADDR_DATA;
+
 	EN_SPI_BR25S;
 
 	tx_data[0] = BR25S_WREN;
 	rxtxSPI0(1, tx_data, rx_data);
 
 	tx_data[0] = BR25S_WRITE;
-	tx_data[1] = BR25S_ADDR_DATA & 0xFF;
-	tx_data[2] = BR25S_ADDR_DATA >> 8;
+	tx_data[1] = addr & 0xFF;
+	tx_data[2] = addr >> 8;
 	for(i=0; i<nb_data; i++) {
 		tx_data[3+i] = ptr[i];
 	}
@@ -573,7 +577,6 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 
 	
 	g_sensor_data[g_sensor_widx][14] = battery;
-	
 	g_sensor_data[g_sensor_widx][15] = settings_flag;
 
 	g_sensor_widx++;													// step to next location

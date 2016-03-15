@@ -96,6 +96,7 @@ static void onDiscPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt);
 static void onConnPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt);
 uint32_t sendDataPHYSENS(ble_pss_t * p_pss);
 
+
 extern volatile uint8_t g_ble_conn;
 extern volatile uint8_t settings_flag;
 extern volatile ble_mode_t ble_mode;
@@ -105,5 +106,9 @@ extern volatile uint8_t g_settings[18];
 extern volatile uint8_t g_settings_new[18];
 extern volatile uint8_t g_handle_settings;
 extern volatile uint8_t g_valid;
+extern volatile uint8_t g_state;
+extern volatile uint16_t g_real_index;
+extern volatile uint16_t g_remember;
+extern volatile uint16_t g_shot_br25s_index;
 #endif 
 

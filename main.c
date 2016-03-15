@@ -168,6 +168,17 @@ volatile uint8_t g_index_data = 0;
 volatile uint16_t g_real_index = 0;
 volatile uint8_t g_valid = 1;
 
+// Sending state machine
+uint16_t g_start;
+volatile uint8_t g_state = 0;
+volatile uint16_t g_remember = 0;
+volatile uint16_t g_shot_br25s_index = 0;
+// 0: Draft
+// 1: Gather
+// 2: Start
+// 3: Data
+// 4: End
+
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
 {/// in case system hangs -> self reboot
@@ -740,23 +751,43 @@ int main(void)
             g_battery_int = (uint8_t) (battery_conv) + symbol;
 			
             value = prepareDataSENSOR(g_battery_int);
-            g_cooked_data[5] = value;
             for (i=0; i<6; i++) {
                 g_data[g_index_data] = g_cooked_data[i];
                 g_index_data++;
             }
-            if (g_index_data >= 29 && g_valid) { //Send data to memory
-                //TODO Index management
-                //TODO Detect threshold...
-                if (g_handle_settings) {
-                    g_handle_settings = 0;
-                    setSettings(g_settings_new);
-                    g_index_data = 0; // Loose for 6.25 ms of data
-                } else {
-                    getSettings(g_settings);
-                    g_real_index = 0; //Index management inside
-                    setDatas(g_data, 30, g_real_index);
-                    g_index_data = 0;
+
+            /*switch (g_state) {
+                default:
+                case 0: //DRAFT
+                    g_state = 1;
+                    g_remember = g_real_index;
+                    g_start = BR25S_CIRCULAR_BUFFER- BR25S_PRESPACE;
+                    break;
+                case 1: // GATHER
+                    g_start--;
+                    if (g_start <= 5) {
+                        g_state = 2;
+                        g_valid = 0;
+                    }
+                    break;
+            }*/
+
+            if (g_state <= 1) {
+                if (g_index_data >= 29 && g_valid) { //Send data to memory
+                    //TODO Index management
+                    //TODO Detect threshold...
+                    if (g_handle_settings) {
+                        g_handle_settings = 0;
+                        setSettings(g_settings_new);
+                        g_index_data = 0; // Loose for 6.25 ms of data
+                    } else {
+                        getSettings(g_settings);
+                        g_real_index = 0; //Index management inside
+                        //setDatas(g_data, 30, g_real_index);
+                        g_index_data += 30;
+                        if (g_index_data >= BR25S_CIRCULAR_BUFFER)
+                            g_index_data = 0;
+                    }
                 }
             }
 

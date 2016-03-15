@@ -266,6 +266,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
     uint32_t err_code = NRF_SUCCESS;
 	uint16_t len = (SENSOR_ROW_SIZE);
     uint8_t data[20] = {0};
+    uint8_t memory[6] = {0};
     uint8_t iter;
 
 
@@ -284,33 +285,77 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		hvx_params.type     = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.p_len    = &len;
         switch (ble_mode) {
-            case BLE_SETTINGS_MODE:
-                data[0] = SETTINGS_READ;
+        case BLE_SETTINGS_MODE:
+            data[0] = SETTINGS_READ;
+            data[1] = g_battery_int;
+            for (iter=0; iter<18; iter++) {
+                data[2+iter] = g_settings[iter];
+            }
+            break;
+        case BLE_SHOT_MODE:
+        case BLE_OTHER_MODE: 
+            // TODO mode magement
+            // Draft mode and real mode mangement
+            // Indexing later
+            switch(g_state) {
+            case 0:
+            case 1:
+                
+                data[0] = DATA_DRAFT;
                 data[1] = g_battery_int;
-                for (iter=0; iter<18; iter++) {
-                    data[2+iter] = g_settings[iter];
-                }
-                break;
-            case BLE_SHOT_MODE:
-            case BLE_OTHER_MODE: 
-                // TODO mode magement
-                // Draft mode and real mode mangement
-                // Indexing later
                 for (iter=0; iter<6; iter++) {
                     data[2+iter] = g_cooked_data[iter];
                 }
-                data[0] = DATA_DRAFT;
-                data[1] = g_battery_int;
                 break;
+            case 2:
+                data[0] = DATA_START;
+                data[1] = g_battery_int;
+                g_state = 3;
+                if (g_remember < 300) {
+                    g_remember = BR25S_CIRCULAR_BUFFER - (300-g_remember);
+                } else {
+                    g_remember -= 300;
+                }
+                g_shot_br25s_index = 0;
+                break;
+            case 3:
+                data[0] = DATA;
+                data[1] = g_battery_int;
+
+                if (g_shot_br25s_index >= BR25S_CIRCULAR_BUFFER - 12) {
+                    // This sample and the last one
+                    g_state = 4;
+                }
+                break;
+            case 4:
+                data[0] = DATA_END;
+                data[1] = g_battery_int;
+                g_state = 0;
+                g_real_index = 0; //Flush everything
+                g_valid = 0;
+                break;
+            }
+
+            if (g_state >= 2) {
+                getDatas(memory, 6, g_remember);
+                for (iter=0; iter<6; iter++) {
+                    data[2+iter] = memory[iter];
+                }
+            }
+
+            break;
         }
-        data[19] = settings_flag;
-		hvx_params.p_data   = data;
+		hvx_params.p_data = data;
 		
-        //nrf_delay_ms(30);
 		err_code = sd_ble_gatts_hvx(p_pss->conn_handle, &hvx_params);
-	    /*if (err_code == 0) {
-            nrf_drv_gpiote_out_toggle(6);
-        }*/
+	    
+        // Add only if complete data
+        if (err_code == NRF_SUCCESS && g_state >= 2) {
+            g_remember += 6;
+            g_shot_br25s_index += 6;
+            if (g_remember >= BR25S_CIRCULAR_BUFFER)
+                g_remember == 0;
+        }
     }
 	else
 	{
