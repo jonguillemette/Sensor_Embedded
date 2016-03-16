@@ -742,14 +742,12 @@ int main(void)
             NRF_POWER->SYSTEMOFF = 0x1;
         }
         
+        float battery_conv = (float)battery_actual/(float)battery_max;
+        battery_conv *= 100;
+        g_battery_int = (uint8_t) (battery_conv) + symbol;
+
         if(g_sensor_read_flag>0 && g_valid)
         {
-            
-            // TODO conversion
-            float battery_conv = (float)battery_actual/(float)battery_max;
-            battery_conv *= 100;
-            g_battery_int = (uint8_t) (battery_conv) + symbol;
-			
             value = prepareDataSENSOR(g_battery_int);
             for (i=0; i<6; i++) {
                 g_data[g_index_data] = g_cooked_data[i];
