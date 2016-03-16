@@ -782,11 +782,11 @@ int main(void)
                         g_index_data = 0; // Loose for 6.25 ms of data
                     } else {
                         getSettings(g_settings);
-                        g_real_index = 0; //Index management inside
-                        //setDatas(g_data, 30, g_real_index);
-                        g_index_data += 30;
-                        if (g_index_data >= BR25S_CIRCULAR_BUFFER)
-                            g_index_data = 0;
+                        getDatas(g_data, 30, g_real_index);
+                        g_real_index += 30;
+                        g_index_data = 0;
+                        if (g_real_index >= BR25S_CIRCULAR_BUFFER)
+                            g_real_index = 0;
                     }
                 }
             }

@@ -349,8 +349,8 @@ void getSettings(uint8_t* ptr) {
 	EN_SPI_BR25S;
 
 	tx_data[0] = BR25S_READ;
-	tx_data[1] = BR25S_ADDR_SETTINGS & 0xFF;
-	tx_data[2] = BR25S_ADDR_SETTINGS >> 8;
+	tx_data[1] = BR25S_ADDR_SETTINGS >> 8;
+	tx_data[2] = BR25S_ADDR_SETTINGS & 0xFF;
 
 	rxtxSPI0(21, tx_data, rx_data);
 	
@@ -370,8 +370,8 @@ void setSettings(uint8_t* ptr) {
 	rxtxSPI0(1, tx_data, rx_data);
 
 	tx_data[0] = BR25S_WRITE;
-	tx_data[1] = BR25S_ADDR_SETTINGS & 0xFF;
-	tx_data[2] = BR25S_ADDR_SETTINGS >> 8;
+	tx_data[1] = BR25S_ADDR_SETTINGS >> 8;
+	tx_data[2] = BR25S_ADDR_SETTINGS & 0xFF;
 	for(i=0; i<18; i++) {
 		tx_data[3+i] = ptr[i];
 	}
@@ -391,8 +391,8 @@ void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
 	rxtxSPI0(1, tx_data, rx_data);
 
 	tx_data[0] = BR25S_WRITE;
-	tx_data[1] = addr & 0xFF;
-	tx_data[2] = addr >> 8;
+	tx_data[1] = addr >> 8;
+	tx_data[2] = addr & 0xFF;
 
 	rxtxSPI0(nb_data+3, tx_data, rx_data);
 	
@@ -413,8 +413,8 @@ void setDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
 	rxtxSPI0(1, tx_data, rx_data);
 
 	tx_data[0] = BR25S_WRITE;
-	tx_data[1] = addr & 0xFF;
-	tx_data[2] = addr >> 8;
+	tx_data[1] = addr >> 8;
+	tx_data[2] = addr & 0xFF;
 	for(i=0; i<nb_data; i++) {
 		tx_data[3+i] = ptr[i];
 	}
