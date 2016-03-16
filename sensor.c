@@ -472,8 +472,11 @@ double toDouble(uint8_t low, uint8_t high) {
 	uint16_t conversion_form;
 
 	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
-
-	return (double) (short) conversion_form;
+	short shortVal = (short) conversion_form;
+	if (shortVal<0) {
+		return (double) (shortVal*-1);
+	}
+	return (double) shortVal;
 }
 
 double pythagore3(double a, double b, double c) {
@@ -503,6 +506,8 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	thresh_low |= g_settings[3];
 	uint8_t value_ret = 0;
 
+	uint8_t val1, val2;
+
 
 	// for H3LIS331 accelerometer we are collecting x & y data
 	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
@@ -518,7 +523,7 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	if (thresh_high != 0) {
 		value_ret = (conversion_form >= thresh_high);
 	}
-
+	
 	g_cooked_data[0] = conversion_form & 0xFF;
 	g_cooked_data[1] = conversion_form>>8 & 0xFF;
 	g_sensor_data[g_sensor_widx][0] = conversion_form & 0xFF;
@@ -530,7 +535,7 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	conversion_form = (uint16_t) pythagore3(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16, toDouble(data[5], data[6])/16);
+	conversion_form = pythagore3(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16, toDouble(data[5], data[6])/16);
 
 	if (conversion_form > low_accel_noise)
 		conversion_form -= low_accel_noise;
@@ -540,10 +545,8 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	if (thresh_high == 0) {
 		value_ret = (conversion_form >= thresh_low);
 	}
-
 	g_cooked_data[2] = conversion_form & 0xFF;
 	g_cooked_data[3] = conversion_form>>8 & 0xFF;
-
 	g_sensor_data[g_sensor_widx][2] = conversion_form & 0xFF;
 	g_sensor_data[g_sensor_widx][3] = conversion_form>>8 & 0xFF;
 	
@@ -552,14 +555,8 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
 	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(3, g_sensor_tx_buff, data);
-	convert = toDouble(data[3], data[4])/16;
 	
-
-	// Don't care about the direction.
-	if (convert < 0)
-		convert *= -1;
-
-	conversion_form = (uint16_t) (convert);
+	conversion_form = (uint16_t) toDouble(data[3], data[4])/16;
 
 	if (conversion_form > gyro_noise)
 		conversion_form -= gyro_noise;
