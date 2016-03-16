@@ -630,7 +630,7 @@ int main(void)
     uint32_t sleep_counter = 0;
     uint8_t wakeup = 0;
     uint32_t battery_percent_int = 0;
-    uint32_t max_counter = 6125000;
+    uint32_t max_counter = 212500;
     uint8_t direction = 0;
     uint8_t i = 0;
     uint8_t value;
@@ -713,7 +713,7 @@ int main(void)
     if (wakeup == 0) {
         // Just update the battery and go to sleep
         
-        max_counter = 312500; //TODO delete one zero
+        max_counter = 21250; 
         
     }
 
@@ -804,7 +804,7 @@ int main(void)
             //sendDataPHYSENS(&m_pss);
 
             sleep_counter = 0;
-            max_counter = 6125000;
+            max_counter = 212500;
         }
     }
 }
