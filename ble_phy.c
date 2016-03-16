@@ -366,6 +366,10 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 	{
 		err_code = NRF_ERROR_INVALID_STATE;
 	}
+
+    if (ble_mode == BLE_SHOT_MODE && g_state <= 1) {
+        return NRF_ERROR_INVALID_STATE; // Send only one data 
+    }
     
 
     return err_code;
