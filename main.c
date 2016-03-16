@@ -756,21 +756,23 @@ int main(void)
                 g_index_data++;
             }
 
-            /*switch (g_state) {
+            switch (g_state) {
                 default:
                 case 0: //DRAFT
-                    g_state = 1;
-                    g_remember = g_real_index;
-                    g_start = BR25S_CIRCULAR_BUFFER- BR25S_PRESPACE;
+                    if (value == 1 && ble_mode == BLE_SHOT_MODE) {
+                        g_state = 1;
+                        g_remember = g_real_index;
+                        g_start = BR25S_CIRCULAR_BUFFER- BR25S_PRESPACE;
+                    }
                     break;
                 case 1: // GATHER
-                    g_start--;
+                    g_start -= 6;
                     if (g_start <= 5) {
                         g_state = 2;
                         g_valid = 0;
                     }
                     break;
-            }*/
+            }
 
             if (g_state <= 1) {
                 if (g_index_data >= 29 && g_valid) { //Send data to memory
@@ -782,7 +784,7 @@ int main(void)
                         g_index_data = 0; // Loose for 6.25 ms of data
                     } else {
                         getSettings(g_settings);
-                        getDatas(g_data, 30, g_real_index);
+                        setDatas(g_data, 30, g_real_index);
                         g_real_index += 30;
                         g_index_data = 0;
                         if (g_real_index >= BR25S_CIRCULAR_BUFFER)

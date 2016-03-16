@@ -387,10 +387,7 @@ void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr) {
 
 	EN_SPI_BR25S;
 
-	tx_data[0] = BR25S_WREN;
-	rxtxSPI0(1, tx_data, rx_data);
-
-	tx_data[0] = BR25S_WRITE;
+	tx_data[0] = BR25S_READ;
 	tx_data[1] = addr >> 8;
 	tx_data[2] = addr & 0xFF;
 
