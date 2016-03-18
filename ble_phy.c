@@ -267,7 +267,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 	uint16_t len = (SENSOR_ROW_SIZE);
     uint8_t data[SENSOR_ROW_SIZE] = {0};
     uint8_t memory[18] = {0}; // 3 datas of 6 bytes each
-    uint8_t iter;
+    uint8_t iter, iter_data;
 
 
 	if ((p_pss->conn_handle != BLE_CONN_HANDLE_INVALID) && p_pss->is_notification_supported)
@@ -300,8 +300,11 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 
                 data[0] = DATA_DRAFT;
                 data[1] = g_battery_int;
-                for (iter=0; iter<6; iter++) {
-                    data[2+iter] = g_cooked_data[iter];
+
+                for (iter_data = 0; iter_data<3; iter_data++) {
+                    for (iter=0; iter<6; iter++) {
+                        data[2+iter + (iter_data*6)] = g_data[iter + (iter_data*6)];
+                    }
                 }
                 break;
             case 2:

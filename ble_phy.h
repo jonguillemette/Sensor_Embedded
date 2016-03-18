@@ -110,5 +110,6 @@ extern volatile uint8_t g_state;
 extern volatile uint16_t g_real_index;
 extern volatile uint16_t g_remember;
 extern volatile uint16_t g_shot_br25s_index;
+extern volatile uint8_t g_data[30];
 #endif 
 
