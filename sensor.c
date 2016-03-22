@@ -520,43 +520,37 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	else
 		conversion_form = 0;
 
-	if (thresh_high != 0) {
-		value_ret = (conversion_form >= thresh_high);
+	if (thresh_high != 0 && (conversion_form >= thresh_high)) {
+		value_ret = 1;
 	}
 	
 	g_cooked_data[0] = conversion_form & 0xFF;
 	g_cooked_data[1] = conversion_form>>8 & 0xFF;
-	g_sensor_data[g_sensor_widx][0] = conversion_form & 0xFF;
-	g_sensor_data[g_sensor_widx][1] = conversion_form>>8 & 0xFF;
-	
-		
+
 	// for LSM330 accelerometer we are collecting x, y & z data
 	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	conversion_form = pythagore3(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16, toDouble(data[5], data[6])/16);
+	conversion_form = pythagore2(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16);
 
 	if (conversion_form > low_accel_noise)
 		conversion_form -= low_accel_noise;
 	else
 		conversion_form = 0;
 
-	if (thresh_high == 0) {
-		value_ret = (conversion_form >= thresh_low);
+	if (thresh_high == 0 && (conversion_form >= thresh_low)) {
+		value_ret = 1;
 	}
 	g_cooked_data[2] = conversion_form & 0xFF;
 	g_cooked_data[3] = conversion_form>>8 & 0xFF;
-	g_sensor_data[g_sensor_widx][2] = conversion_form & 0xFF;
-	g_sensor_data[g_sensor_widx][3] = conversion_form>>8 & 0xFF;
-	
-	
+
 	// for LSM330 gyroscope we are collecting z data
 	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
 	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	
-	conversion_form = (uint16_t) toDouble(data[3], data[4])/16;
+	conversion_form = (uint16_t) toDouble(data[1], data[2])/16;
 
 	if (conversion_form > gyro_noise)
 		conversion_form -= gyro_noise;
@@ -565,17 +559,6 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 
 	g_cooked_data[4] = conversion_form & 0xFF;
 	g_cooked_data[5] = conversion_form>>8 & 0xFF;
-
-	g_sensor_data[g_sensor_widx][4] = conversion_form & 0xFF;
-	g_sensor_data[g_sensor_widx][5] = conversion_form>>8 & 0xFF;
-
-	
-	g_sensor_data[g_sensor_widx][14] = battery;
-	g_sensor_data[g_sensor_widx][15] = settings_flag;
-
-	g_sensor_widx++;													// step to next location
-	if(g_sensor_widx == (SENSOR_COL_SIZE))								// check if we have reached end of the circular buffer
-		g_sensor_widx = 0x00;
 
 	return value_ret;
 }

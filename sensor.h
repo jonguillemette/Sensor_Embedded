@@ -164,12 +164,12 @@
 #define BR25S_SET_MODE						0x00
 
 #define BR25S_MIN_ADDR						0x0000
-#define BR25S_MAX_ADDR						0x1FFF
+#define BR25S_MAX_ADDR						0x1FFF-32
 #define BR25S_ADDR_BATTERY					0x0000
 #define BR25S_ADDR_SETTINGS					0x0004
 #define BR25S_ADDR_DATA						0x0020
 #define BR25S_MAX_WRITE_BYTE				32
-#define BR25S_CIRCULAR_BUFFER				8160
+#define BR25S_CIRCULAR_BUFFER				8160-32
 #define BR25S_PRESPACE						300
 
 #define SENSOR_COL_SIZE						20
@@ -213,7 +213,7 @@ extern volatile uint8_t g_sensor_read_flag;
 extern volatile uint8_t g_cooked_data[6];
 extern volatile uint8_t g_sensor_index;
 extern volatile uint8_t settings_flag;
-extern volatile uint8_t g_data[30];
+extern volatile uint8_t g_data_send[30];
 extern volatile uint8_t g_index_data; 
 extern volatile uint16_t g_real_index;
 extern volatile uint8_t g_settings[18];

@@ -163,10 +163,16 @@ volatile uint8_t g_sensor_shot_data[5][6];
 volatile uint8_t g_settings[18];
 volatile uint8_t g_settings_new[18];
 volatile uint8_t g_handle_settings = 0;
-volatile uint8_t g_data[30]; //Data at the same time
+volatile uint8_t g_data_send[30]; //Data at the same time
 volatile uint8_t g_index_data = 0; 
 volatile uint16_t g_real_index = 0;
 volatile uint8_t g_valid = 1;
+volatile uint16_t g_left = 0;
+
+// EEPROM READ
+volatile uint16_t g_skip[5] = {6, 6, 6, 6, 8};
+volatile uint16_t g_index_skip = 0;
+
 
 // Sending state machine
 uint16_t g_start;
@@ -749,31 +755,36 @@ int main(void)
         if(g_sensor_read_flag>0 && g_valid)
         {
             value = prepareDataSENSOR(g_battery_int);
-            for (i=0; i<6; i++) {
-                g_data[g_index_data] = g_cooked_data[i];
-                g_index_data++;
-            }
 
+            /*for (i=0; i<6; i++) {
+                g_data_send[g_index_data] = g_cooked_data[i];
+                g_index_data++;
+            }*/
+            for (i=0; i<6; i++) {
+                g_data_send[g_index_data+i] = g_cooked_data[i];
+                
+            }
             switch (g_state) {
                 default:
                 case 0: //DRAFT
+                    
                     if (value == 1 && ble_mode == BLE_SHOT_MODE) {
                         g_state = 1;
                         g_remember = g_real_index;
-                        g_start = BR25S_CIRCULAR_BUFFER- BR25S_PRESPACE;
+                        g_start = 254*5;
                     }
                     break;
                 case 1: // GATHER
-                    g_start -= 6;
-                    if (g_start <= 5) {
+                    g_start --;
+                    if (g_start <= 0) {
                         g_state = 2;
                         g_valid = 0;
                     }
                     break;
             }
-
+            g_index_data += 6;
             if (g_state <= 1) {
-                if (g_index_data >= 29 && g_valid) { //Send data to memory
+                if (g_index_data >= 30 && g_valid) { //Send data to memory
                     //TODO Index management
                     //TODO Detect threshold...
                     if (g_handle_settings) {
@@ -782,8 +793,27 @@ int main(void)
                         g_index_data = 0; // Loose for 6.25 ms of data
                     } else {
                         getSettings(g_settings);
-                        setDatas(g_data, 30, g_real_index);
-                        g_real_index += 30;
+                        uint8_t send[30] = {
+                            0,0,
+                            1,1,
+                            2,2,
+                            0,0,
+                            1,1,
+                            2,2,
+                            0,0,
+                            1,1,
+                            2,2,
+                            0,0,
+                            1,1,
+                            2,2,
+                            0,0,
+                            1,1,
+                            2,2
+                               
+                        };
+
+                        setDatas(/*send*/g_data_send, 30, g_real_index);
+                        g_real_index += 32; // Page are 32.
                         g_index_data = 0;
                         if (g_real_index >= BR25S_CIRCULAR_BUFFER)
                             g_real_index = 0;

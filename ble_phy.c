@@ -266,9 +266,11 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
     uint32_t err_code = NRF_SUCCESS;
 	uint16_t len = (SENSOR_ROW_SIZE);
     uint8_t data[SENSOR_ROW_SIZE] = {0};
-    uint8_t memory[18] = {0}; // 3 datas of 6 bytes each
+    uint8_t memory[6] = {0}; // 3 datas of 6 bytes each
     uint8_t iter, iter_data;
-
+    uint16_t new_remember = 0;
+    uint16_t add = 0;
+    uint16_t skip = g_index_skip;
 
 	if ((p_pss->conn_handle != BLE_CONN_HANDLE_INVALID) && p_pss->is_notification_supported)
 	{
@@ -303,18 +305,20 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 
                 for (iter_data = 0; iter_data<3; iter_data++) {
                     for (iter=0; iter<6; iter++) {
-                        data[2+iter + (iter_data*6)] = g_data[iter + (iter_data*6)];
+                        data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
                     }
                 }
                 break;
             case 2:
                 data[0] = DATA_START;
                 data[1] = g_battery_int;
-                
-                if (g_remember < 300) {
-                    g_remember = BR25S_CIRCULAR_BUFFER - (300-g_remember);
+                // 300 for 30, but 32 indexes system.
+                // Take ratio (300 / (30/32))
+                //TODO
+                if (g_remember < 320) {
+                    g_remember = BR25S_CIRCULAR_BUFFER - (320-g_remember);
                 } else {
-                    g_remember -= 300;
+                    g_remember -= 320;
                 }
                 g_shot_br25s_index = 0;
                 break;
@@ -329,9 +333,23 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             }
 
             if (g_state >= 2) {
-                getDatas(memory, 18, g_remember);
-                for (iter=0; iter<18; iter++) {
-                    data[2+iter] = memory[iter];
+                new_remember = g_remember;
+
+                for (iter_data=0; iter_data<3; iter_data++) {
+
+                    getDatas(memory, 6, new_remember);
+                    
+                    new_remember += g_skip[g_index_skip % 5];
+                    add += g_skip[g_index_skip % 5];
+                    g_index_skip++;
+
+                    if (new_remember >= BR25S_CIRCULAR_BUFFER) {
+                        new_remember = 0;
+                    }
+
+                    for (iter=0; iter<6; iter++) {
+                        data[2+iter + (iter_data*6)] = memory[iter];
+                    }
                 }
             }
 
@@ -346,23 +364,29 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 
             if (g_state == 2) {
                 g_state = 3;
-            } else if (g_state == 3) {
-                if (g_shot_br25s_index >= BR25S_CIRCULAR_BUFFER - 12) {
-                    // This sample and the last one
-                    g_state = 4;
-                }
-            } else {
+            
+            } else if (g_state == 4) {
                 g_state = 0;
                 g_real_index = 0; //Flush everything
                 g_valid = 1;
+                g_index_skip = 0;
             }
 
-            g_remember += 18;
-            g_shot_br25s_index += 18;
+            g_remember = new_remember;
+            g_shot_br25s_index += add;
             if (g_remember >= BR25S_CIRCULAR_BUFFER)
                 g_remember == 0;
 
-            
+            if (g_state == 3) {
+                // 18 left + 2 extra(Nothing)
+                if (g_shot_br25s_index >= BR25S_CIRCULAR_BUFFER - 20) {
+                    // This sample and the last one
+                    g_state = 4;
+                }
+            }
+        } else if (g_state >= 2) {
+            // Reinit some value
+            g_index_skip = skip;
         }
     }
 	else
