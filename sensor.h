@@ -189,7 +189,6 @@ uint8_t initLSM330(void);
 uint8_t initADXL(void);
 uint8_t initBR25S(void);
 void initSENSOR(void);
-void getDataSENSOR(uint8_t battery);
 uint8_t prepareDataSENSOR(uint8_t battery);
 void dispDataH3LIS331(void);
 void dispDataLSM330(void);
@@ -203,7 +202,6 @@ void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
 void setDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
 
 
-extern volatile uint8_t g_sensor_data[SENSOR_COL_SIZE][SENSOR_ROW_SIZE];
 extern volatile uint8_t g_sensor_ridx;
 extern volatile uint8_t g_sensor_widx;
 extern volatile uint16_t g_sensor_rcnt;

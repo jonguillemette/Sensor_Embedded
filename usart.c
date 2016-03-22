@@ -32,7 +32,7 @@ void putcharUSART0(uint8_t data)
 void printUSART0(char * str, uint32_t  * num)
 {/// print text and one signed integer or float number
   // the 'num' number is not modified!
-	uint8_t r_str[MAX_PRINT_STRING_SIZE];
+	/*uint8_t r_str[MAX_PRINT_STRING_SIZE];
 	uint16_t k = 0;
 
 	getASCIIString(str, num, r_str);
@@ -46,5 +46,5 @@ void printUSART0(char * str, uint32_t  * num)
 		
 		if(k == MAX_PRINT_STRING_SIZE)
 			break;
-	}
+	}*/
 }
