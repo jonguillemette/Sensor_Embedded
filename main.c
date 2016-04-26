@@ -14,6 +14,20 @@
 /// P0.15   - SPI CS - ADXL
 /// P0.28   - SPI CS - BR25S
 /// P0.29   - Wake-up pin
+
+/// P0.00   - UART Tx Debug @921600 bauds
+/// P0.01   - UART Rx DEbug
+/// P0.04   - Wake up Pin
+/// P0.05   - SPI CS - high accelerometer 
+/// P0.06   - SPI CS - low accelerometer
+/// P0.07   - SPI CS - gyro
+/// P0.08   - SPI SCK
+/// P0.09   - SPI MOSI
+/// P0.10   - SPI CS - ADXL
+/// P0.11   - SPI MISO
+/// P0.15   - Int coulomb counter
+/// P0.28   - SPI CS - BR25S
+/// P0.29   - Polarity coulomb counter
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// BLE Physics primary service 0x2000 (short UUID)
 /// BLE Physics characteristics 0x2E00 (short UUID)
@@ -145,8 +159,9 @@ static dm_application_instance_t         m_app_handle;                          
 static int m_send_packet = 0;
 
 // Battery
-uint16_t battery_max = 42185;
-volatile uint16_t battery_actual = 42185;
+//110mAh
+uint16_t battery_max = 30935;
+volatile uint16_t battery_actual = 30935;
 volatile uint8_t symbol = 0;
 volatile uint8_t g_battery_int;
 
@@ -615,7 +630,7 @@ static void power_manage(void)
 
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    if (nrf_gpio_pin_read(7) == 1) {
+    if (nrf_gpio_pin_read(29) == 1) { //
         battery_actual++;
         symbol = 128;
     } else {
@@ -646,16 +661,16 @@ int main(void)
     nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
 
 
-    nrf_gpio_cfg_input(29, NRF_GPIO_PIN_NOPULL);
-    nrf_gpio_cfg_input(7, NRF_GPIO_PIN_NOPULL);
+    nrf_gpio_cfg_input(4, NRF_GPIO_PIN_NOPULL);
+    nrf_gpio_cfg_input(29, NRF_GPIO_PIN_NOPULL); //
 
     
-    if (nrf_gpio_pin_read(29) == 1) {
+    if (nrf_gpio_pin_read(4) == 1) {
         wakeup = 1;
     }
     else
     {
-        if (nrf_gpio_pin_read(7) == 1) {
+        if (nrf_gpio_pin_read(29) == 1) { //
             direction = 2;
         } else {
             direction = 1;
@@ -663,7 +678,7 @@ int main(void)
     }
 
     
-    nrf_gpio_cfg_sense_input(29, NRF_GPIO_PIN_NOPULL , NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(4, NRF_GPIO_PIN_NOPULL , NRF_GPIO_PIN_SENSE_HIGH);
     nrf_delay_ms(1);
 
     
@@ -712,8 +727,8 @@ int main(void)
     // Counter 
     nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
     in_config.pull = NRF_GPIO_PIN_PULLUP;
-    nrf_drv_gpiote_in_init(6, &in_config, in_pin_handler);
-    nrf_drv_gpiote_in_event_enable(6, true);
+    nrf_drv_gpiote_in_init(15, &in_config, in_pin_handler);
+    nrf_drv_gpiote_in_event_enable(15, true);
 
 
     if (wakeup == 0) {

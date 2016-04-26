@@ -12,7 +12,7 @@
 
 extern volatile uint8_t g_spi_cs_pin;
 
-
+/*
 #define LSM330_SPI_CS_A			4
 #define LSM330_SPI_CS_G			5
 #define SPI0_SCK				8
@@ -20,6 +20,15 @@ extern volatile uint8_t g_spi_cs_pin;
 #define H3LIS331_SPI_CS			10
 #define SPI0_MISO				11
 #define ADXL362_SPI_CS			15
+#define BR25S_SPI_CS			28
+*/
+#define LSM330_SPI_CS_A			6
+#define LSM330_SPI_CS_G			7
+#define SPI0_SCK				8
+#define SPI0_MOSI				9
+#define H3LIS331_SPI_CS			5
+#define SPI0_MISO				11
+#define ADXL362_SPI_CS			10
 #define BR25S_SPI_CS			28
 
 
