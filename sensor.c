@@ -424,6 +424,28 @@ double toDouble(uint8_t low, uint8_t high) {
 	return (double) shortVal;
 }
 
+uint16_t toUint16(uint8_t low, uint8_t high) {
+	uint16_t conversion_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+	short shortVal = (short) conversion_form;
+	if (shortVal<0) {
+		return (uint16_t) (shortVal*-1);
+	}
+	return (uint16_t) shortVal;
+}
+
+uint16_t getSign(uint8_t low, uint8_t high) {
+	uint16_t conversion_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+	short shortVal = (short) conversion_form;
+	if (shortVal<0) {
+		return 0;
+	}
+	return 1;
+}
+
 double pythagore3(double a, double b, double c) {
 	return sqrt((a*a) + (b*b) + (c*c));
 }
@@ -437,7 +459,6 @@ double pythagore2(double a, double b) {
 // value : 1 exceed threshold
 uint8_t prepareDataSENSOR(uint8_t battery)
 {
-	// TODO Use threshold
 	uint8_t tx_data[10];
 	uint8_t data[10];
 	uint16_t conversion_form;
@@ -495,7 +516,7 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	
-	conversion_form = (uint16_t) toDouble(data[1], data[2])/16;
+	conversion_form = (uint16_t) toDouble(data[1], data[2]);
 
 	if (conversion_form > gyro_noise)
 		conversion_form -= gyro_noise;
@@ -506,6 +527,115 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_cooked_data[5] = conversion_form>>8 & 0xFF;
 
 	return value_ret;
+}
+
+/*
+This function works for the Stick handling mode
+data is the space to place the output.
+mode is the current mode of operation
+MODE_SLEEP = 0 --> Retrieve the value of the gyro and send it.
+                   This value will than be add to don't loose the rotation.
+                   Retrieve the value of the small G accel and compare to threshold
+MODE_WAKEUP = 1 --> Record everything and send it.
+                    Retrieve the value of the small G accel and compare to threshold
+
+The return value tell if the acceleration is higher some value (1)
+or below (0)
+
+*/
+uint8_t prepareDataStickSENSOR(uint16_t* out_data)
+{
+	uint8_t tx_data[10];
+	uint8_t data[10];
+
+	uint16_t low_accel_noise = g_settings[6];
+	uint16_t high_accel_noise = g_settings[5];
+	uint16_t gyro_noise = g_settings[7];
+	uint16_t thresh_high = (uint16_t) (g_settings[9])<<8;
+	thresh_high |= g_settings[8];
+	uint8_t ret_value;
+
+	uint16_t value1_x, value1_y, value2_x, value2_y;
+	uint16_t conversion_form;
+
+	ret_value = 0;
+
+	// Get Rotation
+	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
+	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	rxtxSPI0(3, g_sensor_tx_buff, data);
+	
+	conversion_form = toUint16(data[1], data[2]);
+	if (conversion_form > gyro_noise)
+		conversion_form -= gyro_noise;
+	else
+		conversion_form = 0;
+
+	out_data[0] = conversion_form;
+	out_data[1] = getSign(data[1], data[2]);
+
+	//Read HIGH-G
+	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
+	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
+	rxtxSPI0(5, g_sensor_tx_buff, data);
+
+	value1_x = toUint16(data[1], data[2]);
+	if (value1_x > high_accel_noise)
+		value1_x -= high_accel_noise;
+	else
+		value1_x = 0;
+
+	value1_y = toUint16(data[3], data[4]);
+	if (value1_y > high_accel_noise)
+		value1_y -= high_accel_noise;
+	else
+		value1_y = 0;
+
+	//Read LOW_G 
+	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
+	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	rxtxSPI0(7, g_sensor_tx_buff, data);
+
+	value2_x = toUint16(data[1], data[2]);
+	if (value2_x > low_accel_noise)
+		value2_x -= low_accel_noise;
+	else
+		value2_x = 0;
+
+	if (value2_x >= thresh_high) {
+		ret_value = 1;
+	}
+
+	value2_y = toUint16(data[3], data[4]);
+	if (value2_y > low_accel_noise)
+		value2_y -= low_accel_noise;
+	else
+		value2_y = 0;
+
+	if (value2_y >= thresh_high) {
+		ret_value = 1;
+	}
+	
+	// If smaller than 15G, take the small one
+	// If smaller one, one bit trigger.
+	if (value2_x < 1250) {
+		value1_x = value2_x;
+		value1_x += 1<<15;
+	}
+	if (value2_y < 1250) {
+		value1_y = value2_y;
+		value1_y += 1<<15;
+	}
+
+	out_data[2] = value1_x;
+	out_data[3] = getSign(data[1], data[2]);
+	out_data[4] = value1_y;
+	out_data[5] = getSign(data[3], data[4]);
+
+	// Z data, put a bit to indicate low G.
+	out_data[6] = toUint16(data[5], data[6]) + 1<<15;
+
+	return ret_value;
 }
 	
 void initTIMER2(void)

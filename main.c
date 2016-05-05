@@ -160,8 +160,8 @@ static int m_send_packet = 0;
 
 // Battery
 //110mAh
-uint16_t battery_max = 30935;
-volatile uint16_t battery_actual = 30935;
+uint16_t battery_max = 30935*2;
+volatile uint16_t battery_actual = 30935*2;
 volatile uint8_t symbol = 0;
 volatile uint8_t g_battery_int;
 
@@ -199,6 +199,25 @@ volatile uint16_t g_shot_br25s_index = 0;
 // 2: Start
 // 3: Data
 // 4: End
+
+// StickHandling mode
+uint16_t middle_value[7];
+volatile double g_angle = 0;
+// DATA NEEDED
+double accel_x, accel_y, accel_z;
+double accel_init_x, accel_init_y;
+double accel_end_x, accel_end_y;
+uint8_t direction_init; // Degrees * 100 for range
+uint8_t direction_end;
+double accel_mean_x, accel_mean_y;
+double accel_max_x, accel_max_y;
+double accel_max_z;
+uint16_t rotation_max;
+uint16_t delta_tick;
+
+uint16_t reconstruction;
+
+
 
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
@@ -645,6 +664,26 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     } 
 }
 
+uint16_t getConversion(double value) {
+    uint16_t negative_flag;
+    double conversion;
+    uint16_t reconstruction;
+    negative_flag = 0;
+    conversion = value;
+    if (conversion < 0) {
+        conversion *= -1;
+        negative_flag = 1<<14;
+    }
+    if (conversion <15) {
+        conversion *= 83.333;
+        reconstruction = (uint16_t) conversion + negative_flag + (1<<15);
+    } else {
+        conversion *= 5.128;
+        reconstruction = (uint16_t) conversion + negative_flag;
+    }
+    return reconstruction;
+}
+
 int main(void)
 {
 	uint32_t utmp32, k, val;
@@ -767,86 +806,235 @@ int main(void)
         battery_conv *= 100;
         g_battery_int = (uint8_t) (battery_conv) + symbol;
 
-        if(g_sensor_read_flag>0 && g_valid)
+        if(g_sensor_read_flag>0)
         {
-            value = prepareDataSENSOR(g_battery_int);
+            if (g_valid && (ble_mode == BLE_SHOT_MODE || ble_mode == BLE_SETTINGS_MODE)) {
+                value = prepareDataSENSOR(g_battery_int);
 
-            /*for (i=0; i<6; i++) {
-                g_data_send[g_index_data] = g_cooked_data[i];
-                g_index_data++;
-            }*/
-            for (i=0; i<6; i++) {
-                g_data_send[g_index_data+i] = g_cooked_data[i];
-                
-            }
-            switch (g_state) {
-                default:
-                case 0: //DRAFT
+                /*for (i=0; i<6; i++) {
+                    g_data_send[g_index_data] = g_cooked_data[i];
+                    g_index_data++;
+                }*/
+                for (i=0; i<6; i++) {
+                    g_data_send[g_index_data+i] = g_cooked_data[i];
                     
-                    if (value == 1 && ble_mode == BLE_SHOT_MODE) {
-                        g_state = 1;
-                        g_remember = g_real_index;
-                        g_start = 254*5;
-                    }
-                    break;
-                case 1: // GATHER
-                    g_start --;
-                    if (g_start <= 0) {
-                        g_state = 2;
-                        g_valid = 0;
-                    }
-                    break;
-            }
-            g_index_data += 6;
-            if (g_state <= 1) {
-                if (g_index_data >= 30 && g_valid) { //Send data to memory
-                    //TODO Index management
-                    //TODO Detect threshold...
-                    if (g_handle_settings) {
-                        g_handle_settings = 0;
-                        setSettings(g_settings_new);
-                        g_index_data = 0; // Loose for 6.25 ms of data
-                    } else {
-                        getSettings(g_settings);
-                        uint8_t send[30] = {
-                            0,0,
-                            1,1,
-                            2,2,
-                            0,0,
-                            1,1,
-                            2,2,
-                            0,0,
-                            1,1,
-                            2,2,
-                            0,0,
-                            1,1,
-                            2,2,
-                            0,0,
-                            1,1,
-                            2,2
-                               
-                        };
+                }
+                switch (g_state) {
+                    default:
+                    case 0: //DRAFT
+                        
+                        if (value == 1 && ble_mode == BLE_SHOT_MODE) {
+                            g_state = 1;
+                            g_remember = g_real_index;
+                            g_start = 254*5;
+                        }
+                        break;
+                    case 1: // GATHER
+                        g_start --;
+                        if (g_start <= 0) {
+                            g_state = 2;
+                            g_valid = 0;
+                        }
+                        break;
+                }
+                g_index_data += 6;
+                if (g_state <= 1) {
+                    if (g_index_data >= 30 && g_valid) { //Send data to memory
+                        if (g_handle_settings) {
+                            g_handle_settings = 0;
+                            setSettings(g_settings_new);
+                            g_index_data = 0; // Loose for 6.25 ms of data
+                        } else {
+                            getSettings(g_settings);
+                            uint8_t send[30] = {
+                                0,0,
+                                1,1,
+                                2,2,
+                                0,0,
+                                1,1,
+                                2,2,
+                                0,0,
+                                1,1,
+                                2,2,
+                                0,0,
+                                1,1,
+                                2,2,
+                                0,0,
+                                1,1,
+                                2,2
+                                   
+                            };
 
-                        setDatas(/*send*/g_data_send, 30, g_real_index);
-                        g_real_index += 32; // Page are 32.
-                        g_index_data = 0;
-                        if (g_real_index >= BR25S_CIRCULAR_BUFFER)
-                            g_real_index = 0;
+                            setDatas(/*send*/g_data_send, 30, g_real_index);
+                            g_real_index += 32; // Page are 32.
+                            g_index_data = 0;
+                            if (g_real_index >= BR25S_CIRCULAR_BUFFER)
+                                g_real_index = 0;
+                        }
                     }
                 }
-            }
+            } else if (ble_mode == BLE_STICK_MODE) {
+                value = prepareDataStickSENSOR(middle_value);
+                if (middle_value[1] == 0) {
+                    g_angle += -(double)middle_value[0] * 0.07 * 0.00125;
+                
+                } else {
+                   g_angle += (double)middle_value[0] * 0.07 * 0.00125;
+                 
+                }
+                if (g_angle < 0) {
+                    g_angle += 360;
+                }
+                /*g_data_send[0] = value;
+                g_data_send[2] = middle_value[2];
+                g_data_send[3] = middle_value[3];
+                g_data_send[4] = middle_value[4];
+                g_data_send[5] = middle_value[5];
+                g_data_send[6] = middle_value[6];*/
+                
+                switch (g_state) {
+                case 0:
+                    // Sleep mode, add value for rotation.
+                    if (value == 1) {
+                        
+                        if (middle_value[2] >= (1<<15)) {
+                            //LOW_G
+                            accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
+                        } else {
+                            // HIGH_G
+                            accel_x = (double) middle_value[2] * 0.195;
+                        }
 
+                        if (middle_value[4] >= (1<<15)) {
+                            //LOW_G
+                            accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
+                        } else {
+                            // HIGH_G
+                            accel_y = (double) middle_value[4] * 0.195;
+                        }
+
+                        accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
+
+                        // SIGN
+                        if (middle_value[3] == 0)
+                            accel_x *= -1;
+                        if (middle_value[5] == 0)
+                            accel_y *= -1;
+                        // No need for Z
+
+                        accel_init_x = accel_x;
+                        accel_init_y = accel_y;
+                        accel_max_x = abs(accel_x);
+                        accel_max_y = abs(accel_y);
+                        accel_mean_x = accel_x;
+                        accel_mean_y = accel_y;
+                        accel_max_z = abs(accel_z);
+                        delta_tick = 1;
+                        direction_init = (uint8_t) (g_angle);
+                        rotation_max = middle_value[0];
+                        g_state = 1;
+                    }
+                    
+                    break;
+                case 1:
+                    // Detect event, accumulate
+                    if (value == 1) {
+                        //Continue
+                        if (middle_value[2] >= (1<<15)) {
+                            //LOW_G
+                            accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
+                        } else {
+                            // HIGH_G
+                            accel_x = (double) middle_value[2] * 0.195;
+                        }
+
+                        if (middle_value[4] >= (1<<15)) {
+                            //LOW_G
+                            accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
+                        } else {
+                            // HIGH_G
+                            accel_y = (double) middle_value[4] * 0.195;
+                        }
+
+                        accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
+
+                        // SIGN
+                        if (middle_value[3] == 0)
+                            accel_x *= -1;
+                        if (middle_value[5] == 0)
+                            accel_y *= -1;
+                        // No need for Z
+
+                        delta_tick++;
+
+                        // 
+                        accel_max_x = accel_max_x > abs(accel_x) ? accel_max_x : abs(accel_x);
+                        accel_max_y = accel_max_y > abs(accel_y) ? accel_max_y : abs(accel_y);
+                        accel_mean_x = ((accel_max_x * (delta_tick-1)) + accel_x) / delta_tick;
+                        accel_mean_y = ((accel_max_y * (delta_tick-1)) + accel_y) / delta_tick;
+                        accel_max_z = accel_max_z > abs(accel_z) ? accel_max_z : abs(accel_z);
+                        rotation_max = rotation_max > abs(middle_value[0]) ? rotation_max : abs(middle_value[0]);
+
+                        // If it's the last
+                        accel_end_x = accel_x;
+                        accel_end_y = accel_y;
+                    } else {
+                        // Sum everything
+                        direction_init = (uint8_t) (g_angle);
+                        
+                        // Build data
+                        reconstruction = getConversion(accel_init_x);
+                        g_data_send[0] = reconstruction & 0xFF;
+                        g_data_send[1] = reconstruction>>8 & 0xFF;
+
+                        reconstruction = getConversion(accel_init_y);
+                        g_data_send[2] = reconstruction & 0xFF;
+                        g_data_send[3] = reconstruction>>8 & 0xFF;
+
+                        reconstruction = getConversion(accel_end_x);
+                        g_data_send[4] = reconstruction & 0xFF;
+                        g_data_send[5] = reconstruction>>8 & 0xFF;
+
+                        reconstruction = getConversion(accel_end_y);
+                        g_data_send[6] = reconstruction & 0xFF;
+                        g_data_send[7] = reconstruction>>8 & 0xFF;
+
+                        g_data_send[8] = direction_init;
+
+                        g_data_send[9] = direction_end;
+
+                        reconstruction = getConversion(sqrt(accel_mean_x*accel_mean_x + accel_mean_y * accel_mean_y));
+                        g_data_send[10] = reconstruction & 0xFF;
+                        g_data_send[11] = reconstruction>>8 & 0xFF;
+
+                        reconstruction = getConversion(sqrt(accel_max_x*accel_max_x + accel_max_y * accel_max_y));
+                        g_data_send[12] = reconstruction & 0xFF;
+                        g_data_send[13] = reconstruction>>8 & 0xFF;
+
+                        reconstruction = getConversion(accel_max_z);
+                        g_data_send[14] = reconstruction & 0xFF;
+                        g_data_send[15] = reconstruction>>8 & 0xFF;
+
+                        g_data_send[16] = rotation_max & 0xFF;
+                        g_data_send[17] = rotation_max>>8 & 0xFF;
+
+                        g_data_send[18] = delta_tick & 0xFF;
+                        g_data_send[19] = delta_tick>>8 & 0xFF;
+
+                        g_state = 2;
+
+                    }
+                    break;
+                }
+            }
             g_sensor_read_flag--;
 		}
         if(g_ble_conn) {
-            
             if (!transmit) {
                 transmit = true;
                 initPowerH3LIS331();
                 initPowerLSM330();
             }
-            //power_manage();
-            //sendDataPHYSENS(&m_pss);
 
             sleep_counter = 0;
             max_counter = 212500;

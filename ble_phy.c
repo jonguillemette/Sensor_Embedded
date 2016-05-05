@@ -239,9 +239,20 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 }
                 settings_flag = len;
                 break;
-            case DATA_READY:
+            case SHOT_MODE: // Same as DATA_READY
                 // Switching mode
+                g_state = 0; //Restart state machine
                 ble_mode = BLE_SHOT_MODE;
+                break;
+            case STICK_MODE: // Same as STICK_START
+                // Switching mode
+                g_state = 0; // Restart state machine
+                g_angle = 0; // Reset angle
+                ble_mode = BLE_STICK_MODE;
+                break;
+            case SETTINGS_MODE:
+                // Switching mode
+                ble_mode = BLE_SETTINGS_MODE;
                 break;
         }
     }
@@ -284,6 +295,37 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		hvx_params.type     = BLE_GATT_HVX_NOTIFICATION;
 		hvx_params.p_len    = &len;
         switch (ble_mode) {
+        
+        case BLE_STICK_MODE:
+            if (g_state == 2) {
+                data[0] = STICK_MOMENT;
+                data[1] = g_battery_int;
+                data[2] = 1;
+                for (iter=0; iter<10; iter++) {
+                    data[3+iter] = g_data_send[iter];
+                }
+                g_state = 3;
+            } else if (g_state == 3) {
+                data[0] = STICK_MOMENT;
+                data[1] = g_battery_int;
+                data[2] = 2;
+                for (iter=10; iter<20; iter++) {
+                    data[3+iter-10] = g_data_send[iter];
+                }
+                g_state = 0; //RESTART
+
+            } else {
+                //TODO, put code from settings
+                //Send settings
+                data[0] = SETTINGS_READ;
+                data[1] = g_battery_int;
+                for (iter=0; iter<18; iter++) {
+                    data[2+iter] = g_settings[iter];
+                }
+
+            }
+            break;
+
         case BLE_SETTINGS_MODE:
             data[0] = SETTINGS_READ;
             data[1] = g_battery_int;
@@ -291,8 +333,9 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 data[2+iter] = g_settings[iter];
             }
             break;
-        case BLE_SHOT_MODE:
+
         case BLE_OTHER_MODE: 
+        case BLE_SHOT_MODE:
             // TODO mode magement
             // Draft mode and real mode mangement
             // Indexing later
@@ -359,8 +402,16 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		
 		err_code = sd_ble_gatts_hvx(p_pss->conn_handle, &hvx_params);
 	    
+
+
+        if (ble_mode == BLE_STICK_MODE && g_state <= 1) {
+            return NRF_ERROR_INVALID_STATE; // Send only one data 
+        } else if (ble_mode == BLE_STICK_MODE) {
+            return err_code;
+        }
+
         // Add only if complete data
-        if (err_code == NRF_SUCCESS && g_state >= 2) {
+        if (ble_mode == BLE_SHOT_MODE && err_code == NRF_SUCCESS && g_state >= 2) {
 
             if (g_state == 2) {
                 g_state = 3;
@@ -394,10 +445,10 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 		err_code = NRF_ERROR_INVALID_STATE;
 	}
 
+    
     if (ble_mode == BLE_SHOT_MODE && g_state <= 1) {
         return NRF_ERROR_INVALID_STATE; // Send only one data 
     }
-    
 
     return err_code;
 }
