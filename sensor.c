@@ -575,17 +575,17 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	out_data[1] = getSign(data[1], data[2]);
 
 	//Read HIGH-G
-	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
+	EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
 	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
 	rxtxSPI0(5, g_sensor_tx_buff, data);
 
-	value1_x = toUint16(data[1], data[2]);
+	value1_x = toUint16(data[1], data[2])>>4;
 	if (value1_x > high_accel_noise)
 		value1_x -= high_accel_noise;
 	else
 		value1_x = 0;
 
-	value1_y = toUint16(data[3], data[4]);
+	value1_y = toUint16(data[3], data[4])>>4;
 	if (value1_y > high_accel_noise)
 		value1_y -= high_accel_noise;
 	else
@@ -596,7 +596,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	value2_x = toUint16(data[1], data[2]);
+	value2_x = toUint16(data[1], data[2])>>4;
 	if (value2_x > low_accel_noise)
 		value2_x -= low_accel_noise;
 	else
@@ -606,7 +606,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 		ret_value = 1;
 	}
 
-	value2_y = toUint16(data[3], data[4]);
+	value2_y = toUint16(data[3], data[4])>>4;
 	if (value2_y > low_accel_noise)
 		value2_y -= low_accel_noise;
 	else
@@ -633,7 +633,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	out_data[5] = getSign(data[3], data[4]);
 
 	// Z data, put a bit to indicate low G.
-	out_data[6] = toUint16(data[5], data[6]) + 1<<15;
+	out_data[6] = (toUint16(data[5], data[6])>>4) + (1<<15);
 
 	return ret_value;
 }
