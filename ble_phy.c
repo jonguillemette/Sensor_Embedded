@@ -309,7 +309,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 data[0] = STICK_MOMENT;
                 data[1] = g_battery_int;
                 data[2] = 2;
-                for (iter=10; iter<20; iter++) {
+                for (iter=10; iter<22; iter++) {
                     data[3+iter-10] = g_data_send[iter];
                 }
                 g_state = 0; //RESTART
@@ -317,6 +317,11 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             } else {
                 //TODO, put code from settings
                 //Send settings
+                /*data[0] = STICK_MOMENT;
+                data[1] = g_battery_int;
+                for (iter=0; iter<14; iter++) {
+                    data[2+iter] = g_data_send[iter];
+                }*/
                 data[0] = SETTINGS_READ;
                 data[1] = g_battery_int;
                 for (iter=0; iter<18; iter++) {

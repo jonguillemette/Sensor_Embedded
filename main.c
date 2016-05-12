@@ -213,7 +213,7 @@ double accel_mean_x, accel_mean_y;
 double accel_max_x, accel_max_y;
 double accel_max_z;
 uint16_t rotation_max;
-uint16_t delta_tick;
+uint16_t delta_tick, delta_tick_flying=0;
 
 uint16_t reconstruction;
 
@@ -665,7 +665,7 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 }
 
 uint16_t getConversion(double value) {
-    uint16_t negative_flag;
+    uint16_t negative_flag = 0;
     double conversion;
     uint16_t reconstruction;
     negative_flag = 0;
@@ -933,6 +933,21 @@ int main(void)
                         direction_init = (uint8_t) (g_angle);
                         rotation_max = middle_value[0];
                         g_state = 1;
+                    } else {
+                        /*g_data_send[0] = middle_value[0] & 0xFF;
+                        g_data_send[1] = middle_value[0]>>8 & 0xFF;
+                        g_data_send[2] = middle_value[1] & 0xFF;
+                        g_data_send[3] = middle_value[1]>>8 & 0xFF;
+                        g_data_send[4] = middle_value[2] & 0xFF;
+                        g_data_send[5] = middle_value[2]>>8 & 0xFF;
+                        g_data_send[6] = middle_value[3] & 0xFF;
+                        g_data_send[7] = middle_value[3]>>8 & 0xFF;
+                        g_data_send[8] = middle_value[4] & 0xFF;
+                        g_data_send[9] = middle_value[4]>>8 & 0xFF;
+                        g_data_send[10] = middle_value[5] & 0xFF;
+                        g_data_send[11] = middle_value[5]>>8 & 0xFF;
+                        */
+                        delta_tick_flying++;
                     }
                     
                     break;
@@ -980,7 +995,7 @@ int main(void)
                         accel_end_y = accel_y;
                     } else {
                         // Sum everything
-                        direction_init = (uint8_t) (g_angle);
+                        direction_end = (uint8_t) (g_angle);
                         
                         // Build data
                         reconstruction = getConversion(accel_init_x);
@@ -1021,8 +1036,12 @@ int main(void)
                         g_data_send[18] = delta_tick & 0xFF;
                         g_data_send[19] = delta_tick>>8 & 0xFF;
 
+                        g_data_send[20] = delta_tick_flying & 0xFF;
+                        g_data_send[21] = delta_tick_flying>>8 & 0xFF;
+
                         g_state = 2;
 
+                        delta_tick_flying = 0;
                     }
                     break;
                 }
