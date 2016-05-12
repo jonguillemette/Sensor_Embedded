@@ -676,10 +676,10 @@ uint16_t getConversion(double value) {
     }
     if (conversion <15) {
         conversion *= 83.333;
-        reconstruction = (uint16_t) conversion + negative_flag + (1<<15);
+        reconstruction = (uint16_t) (conversion) + negative_flag + (1<<15);
     } else {
         conversion *= 5.128;
-        reconstruction = (uint16_t) conversion + negative_flag;
+        reconstruction = (uint16_t) (conversion) + negative_flag;
     }
     return reconstruction;
 }
@@ -902,7 +902,7 @@ int main(void)
                             accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
                         } else {
                             // HIGH_G
-                            accel_x = (double) middle_value[2] * 0.195;
+                            accel_x = (double) (middle_value[2]) * 0.195;
                         }
 
                         if (middle_value[4] >= (1<<15)) {
@@ -910,25 +910,28 @@ int main(void)
                             accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
                         } else {
                             // HIGH_G
-                            accel_y = (double) middle_value[4] * 0.195;
+                            accel_y = (double) (middle_value[4]) * 0.195;
                         }
 
                         accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
 
+                        
+                        // No need for Z
+
+
+
+                        accel_max_x = accel_x;
+                        accel_max_y = accel_y;
+                        accel_mean_x = accel_x;
+                        accel_mean_y = accel_y;
                         // SIGN
                         if (middle_value[3] == 0)
                             accel_x *= -1;
                         if (middle_value[5] == 0)
                             accel_y *= -1;
-                        // No need for Z
-
                         accel_init_x = accel_x;
                         accel_init_y = accel_y;
-                        accel_max_x = abs(accel_x);
-                        accel_max_y = abs(accel_y);
-                        accel_mean_x = accel_x;
-                        accel_mean_y = accel_y;
-                        accel_max_z = abs(accel_z);
+                        accel_max_z = accel_z;
                         delta_tick = 1;
                         direction_init = (uint8_t) (g_angle);
                         rotation_max = middle_value[0];
@@ -960,7 +963,7 @@ int main(void)
                             accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
                         } else {
                             // HIGH_G
-                            accel_x = (double) middle_value[2] * 0.195;
+                            accel_x = (double) (middle_value[2]) * 0.195;
                         }
 
                         if (middle_value[4] >= (1<<15)) {
@@ -968,35 +971,36 @@ int main(void)
                             accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
                         } else {
                             // HIGH_G
-                            accel_y = (double) middle_value[4] * 0.195;
+                            accel_y = (double) (middle_value[4]) * 0.195;
                         }
 
                         accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
+
+                        
+                        // No need for Z
+
+                        delta_tick++;
+
+                        // 
+                        accel_max_x = accel_max_x > accel_x ? accel_max_x : accel_x;
+                        accel_max_y = accel_max_y > accel_y ? accel_max_y : accel_y;
+                        accel_mean_x = ((accel_mean_x * (delta_tick-1)) + accel_x) / delta_tick;
+                        accel_mean_y = ((accel_mean_y * (delta_tick-1)) + accel_y) / delta_tick;
+                        accel_max_z = accel_max_z > accel_z ? accel_max_z : accel_z;
+                        rotation_max = rotation_max > (double) middle_value[0] ? rotation_max : (double) middle_value[0];
 
                         // SIGN
                         if (middle_value[3] == 0)
                             accel_x *= -1;
                         if (middle_value[5] == 0)
                             accel_y *= -1;
-                        // No need for Z
-
-                        delta_tick++;
-
-                        // 
-                        accel_max_x = accel_max_x > abs(accel_x) ? accel_max_x : abs(accel_x);
-                        accel_max_y = accel_max_y > abs(accel_y) ? accel_max_y : abs(accel_y);
-                        accel_mean_x = ((accel_max_x * (delta_tick-1)) + accel_x) / delta_tick;
-                        accel_mean_y = ((accel_max_y * (delta_tick-1)) + accel_y) / delta_tick;
-                        accel_max_z = accel_max_z > abs(accel_z) ? accel_max_z : abs(accel_z);
-                        rotation_max = rotation_max > abs(middle_value[0]) ? rotation_max : abs(middle_value[0]);
 
                         // If it's the last
                         accel_end_x = accel_x;
                         accel_end_y = accel_y;
-                    } else {
-                        // Sum everything
                         direction_end = (uint8_t) (g_angle);
-                        
+                    } else {
+
                         // Build data
                         reconstruction = getConversion(accel_init_x);
                         g_data_send[0] = reconstruction & 0xFF;
@@ -1018,11 +1022,11 @@ int main(void)
 
                         g_data_send[9] = direction_end;
 
-                        reconstruction = getConversion(sqrt(accel_mean_x*accel_mean_x + accel_mean_y * accel_mean_y));
+                        reconstruction = getConversion(sqrt(pow(accel_mean_x,2) + pow(accel_mean_y,2)));
                         g_data_send[10] = reconstruction & 0xFF;
                         g_data_send[11] = reconstruction>>8 & 0xFF;
 
-                        reconstruction = getConversion(sqrt(accel_max_x*accel_max_x + accel_max_y * accel_max_y));
+                        reconstruction = getConversion(sqrt(pow(accel_max_x,2) + pow(accel_max_y,2)));
                         g_data_send[12] = reconstruction & 0xFF;
                         g_data_send[13] = reconstruction>>8 & 0xFF;
 
