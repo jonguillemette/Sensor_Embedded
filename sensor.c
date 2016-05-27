@@ -301,8 +301,9 @@ uint8_t initBR25S(void)
 }
 
 uint16_t getBatteryLevel() {
-	uint8_t tx_data[5], rx_data[5];
+	uint8_t tx_data[6], rx_data[6];
 	uint16_t final_value;
+	uint8_t validate;
 	
 	EN_SPI_BR25S;
 
@@ -310,16 +311,23 @@ uint16_t getBatteryLevel() {
 	tx_data[1] = 0x00;
 	tx_data[2] = 0x00;
 
-	rxtxSPI0(5, tx_data, rx_data);
+	rxtxSPI0(6, tx_data, rx_data);
 	final_value = 0;
 	final_value += rx_data[3];
 	final_value += rx_data[4] << 8;
+	validate = rx_data[5];
+
+	if (validate != 0x4F) {
+		final_value = 65534;
+	}
+	
 	return final_value;
 }
 
 void setBatteryLevel(uint16_t battery_level) {
-	uint8_t tx_data[5], rx_data[5];
-	
+	uint8_t tx_data[6], rx_data[6];
+
+
 	EN_SPI_BR25S;
 
 	tx_data[0] = BR25S_WREN;
@@ -330,8 +338,9 @@ void setBatteryLevel(uint16_t battery_level) {
 	tx_data[2] = (uint8_t) 0x00;
 	tx_data[3] = (uint8_t) (battery_level & 0xFF);
 	tx_data[4] = (uint8_t) ((battery_level & 0xFF00) >> 8);
+	tx_data[5] = 0x4F;	
 
-	rxtxSPI0(5, tx_data, rx_data);
+	rxtxSPI0(6, tx_data, rx_data);
 }
 
 // 18 bytes of settings, ptr is already prepared
