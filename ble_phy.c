@@ -244,6 +244,11 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 g_state = 0; //Restart state machine
                 ble_mode = BLE_SHOT_MODE;
                 break;
+            case FREE_MODE: 
+                // Switching mode
+                g_state = 0; //Restart state machine
+                ble_mode = BLE_FREE_MODE;
+                break;
             case STICK_MODE: // Same as STICK_START
                 // Switching mode
                 g_state = 0; // Restart state machine
@@ -338,7 +343,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 data[2+iter] = g_settings[iter];
             }
             break;
-
+        case BLE_FREE_MODE:
         case BLE_OTHER_MODE: 
         case BLE_SHOT_MODE:
             // TODO mode magement
@@ -451,7 +456,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 	}
 
     
-    if (ble_mode == BLE_SHOT_MODE && g_state <= 1) {
+    if ((ble_mode == BLE_SHOT_MODE || ble_mode == BLE_FREE_MODE) && g_state <= 1) {
         return NRF_ERROR_INVALID_STATE; // Send only one data 
     }
 

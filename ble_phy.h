@@ -68,8 +68,9 @@ typedef enum
 
     BLE_SHOT_MODE = 0,
     BLE_STICK_MODE=1,
-    BLE_OTHER_MODE=2,
-    BLE_SETTINGS_MODE=3,
+    BLE_FREE_MODE=2,
+    BLE_OTHER_MODE=3,
+    BLE_SETTINGS_MODE=4,
 } ble_mode_t;
 
 #define BLE_UUID_PHY_SENSOR_SERVICE 	0x2000
@@ -91,6 +92,7 @@ typedef enum
 #define STICK_START                     0x0B
 #define STICK_MODE                      0x0B //
 #define STICK_MOMENT                    0x0C
+#define FREE_MODE                       0x0D
 
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);
 static uint32_t addCharPHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);

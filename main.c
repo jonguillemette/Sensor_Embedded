@@ -808,8 +808,12 @@ int main(void)
 
         if(g_sensor_read_flag>0)
         {
-            if (g_valid && (ble_mode == BLE_SHOT_MODE || ble_mode == BLE_SETTINGS_MODE)) {
+            if (g_valid && (ble_mode == BLE_SHOT_MODE || ble_mode == BLE_SETTINGS_MODE || ble_mode == BLE_FREE_MODE)) {
                 value = prepareDataSENSOR(g_battery_int);
+                if (ble_mode == BLE_FREE_MODE) {
+                    // Free mode send only draft data
+                    value = 0;
+                }
 
                 /*for (i=0; i<6; i++) {
                     g_data_send[g_index_data] = g_cooked_data[i];
