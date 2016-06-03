@@ -611,7 +611,9 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	else
 		value2_x = 0;
 
-	if (value2_x >= thresh_high) {
+	// Detect threshold, but check also High G sensor to discard 
+	// in error zone.
+	if (value2_x >= thresh_high && value1_x < 52) {
 		ret_value = 1;
 	}
 
@@ -621,17 +623,16 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	else
 		value2_y = 0;
 
-	if (value2_y >= thresh_high) {
+	if (value2_y >= thresh_high && value1_y < 52) {
 		ret_value = 1;
 	}
 	
-	// If smaller than 15G, take the small one
-	// If smaller one, one bit trigger.
-	if (value2_x < 1250) {
+	// IIf big is smaller than 10G.
+	if (value1_x < 52) {
 		value1_x = value2_x;
 		value1_x += 1<<15;
 	}
-	if (value2_y < 1250) {
+	if (value1_y < 52) {
 		value1_y = value2_y;
 		value1_y += 1<<15;
 	}
