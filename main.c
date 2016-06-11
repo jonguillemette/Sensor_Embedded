@@ -830,7 +830,7 @@ int main(void)
                         if (value == 1 && ble_mode == BLE_SHOT_MODE) {
                             g_state = 1;
                             g_remember = g_real_index;
-                            g_start = 254*5;
+                            g_start = BR25S_LEFT_OVER;
                         }
                         break;
                     case 1: // GATHER
