@@ -454,6 +454,24 @@ double toDoubleError(uint8_t low, uint8_t high, uint8_t sign, uint16_t value) {
 	return double_form;
 }
 
+uint16_t toUint16Error(uint8_t low, uint8_t high, uint8_t sign, uint16_t value) {
+	uint16_t conversion_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+	short shortVal = (short) conversion_form;
+
+	if (sign > 0) {
+		shortVal = shortVal - value;
+	} else {
+		shortVal = shortVal + value;
+	}
+
+	if (shortVal<0) {
+		return (uint16_t) (shortVal*-1);
+	}
+	return (uint16_t) shortVal;
+}
+
 uint16_t toUint16(uint8_t low, uint8_t high) {
 	uint16_t conversion_form;
 
@@ -470,6 +488,25 @@ uint16_t getSign(uint8_t low, uint8_t high) {
 
 	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
 	short shortVal = (short) conversion_form;
+
+	if (shortVal<0) {
+		return 0;
+	}
+	return 1;
+}
+
+uint16_t getSignError(uint8_t low, uint8_t high, uint8_t sign, uint16_t value) {
+	uint16_t conversion_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+	short shortVal = (short) conversion_form;
+
+	if (sign > 0) {
+		shortVal = shortVal - value;
+	} else {
+		shortVal = shortVal + value;
+	}
+
 	if (shortVal<0) {
 		return 0;
 	}
@@ -594,6 +631,19 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	uint16_t value1_x, value1_y, value2_x, value2_y;
 	uint16_t conversion_form;
 
+	uint16_t high_x_g, high_y_g, low_x_g, low_y_g;
+	uint8_t high_x_sign, high_y_sign, low_x_sign, low_y_sign;
+
+	high_x_g = g_calib_axis[0] << 4;
+	high_y_g = g_calib_axis[1] << 4;
+	low_x_g = g_calib_axis[2] << 4;
+	low_y_g = g_calib_axis[3] << 4;
+
+	high_x_sign = g_calib_axis[4];
+	high_y_sign = g_calib_axis[5];
+	low_x_sign = g_calib_axis[6];
+	low_y_sign = g_calib_axis[7];
+
 	ret_value = 0;
 
 	// Get Rotation
@@ -615,13 +665,9 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
 	rxtxSPI0(5, g_sensor_tx_buff, data);
 
-	value1_x = toUint16(data[1], data[2])>>4;
-	if (value1_x > high_accel_noise)
-		value1_x -= high_accel_noise;
-	else
-		value1_x = 0;
+	value1_x = toUint16Error(data[1], data[2], high_x_sign, high_x_g)>>4;
 
-	value1_y = toUint16(data[3], data[4])>>4;
+	value1_y = toUint16Error(data[3], data[4], high_y_sign, high_y_g)>>4;
 	if (value1_y > high_accel_noise)
 		value1_y -= high_accel_noise;
 	else
@@ -632,7 +678,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	value2_x = toUint16(data[1], data[2])>>4;
+	value2_x = toUint16Error(data[1], data[2], low_x_sign, low_x_g)>>4;
 	if (value2_x > low_accel_noise)
 		value2_x -= low_accel_noise;
 	else
@@ -644,7 +690,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 		ret_value = 1;
 	}
 
-	value2_y = toUint16(data[3], data[4])>>4;
+	value2_y = toUint16Error(data[3], data[4], low_y_sign, low_y_g)>>4;
 	if (value2_y > low_accel_noise)
 		value2_y -= low_accel_noise;
 	else
@@ -665,9 +711,9 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	}
 
 	out_data[2] = value1_x;
-	out_data[3] = getSign(data[1], data[2]);
+	out_data[3] = getSignError(data[1], data[2], low_x_sign, low_x_g);
 	out_data[4] = value1_y;
-	out_data[5] = getSign(data[3], data[4]);
+	out_data[5] = getSignError(data[3], data[4], low_y_sign, low_y_g);
 
 	// Z data, put a bit to indicate low G.
 	out_data[6] = (toUint16(data[5], data[6])>>4) + (1<<15);
