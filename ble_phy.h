@@ -71,6 +71,7 @@ typedef enum
     BLE_FREE_MODE=2,
     BLE_OTHER_MODE=3,
     BLE_SETTINGS_MODE=4,
+    BLE_CALIB_AXIS_MODE=5,
 } ble_mode_t;
 
 #define BLE_UUID_PHY_SENSOR_SERVICE 	0x2000
@@ -93,6 +94,9 @@ typedef enum
 #define STICK_MODE                      0x0B //
 #define STICK_MOMENT                    0x0C
 #define FREE_MODE                       0x0D
+#define CALIB_OUTPUT                    0x0E
+#define CALIB_AXIS                      0x0F
+
 
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);
 static uint32_t addCharPHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);
@@ -122,5 +126,6 @@ extern volatile uint16_t g_left;
 extern volatile uint16_t g_skip[5];
 extern volatile uint16_t g_index_skip;
 extern volatile double g_angle;
+extern volatile uint16_t g_calib_axis[8];
 #endif 
 

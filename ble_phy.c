@@ -259,6 +259,9 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 // Switching mode
                 ble_mode = BLE_SETTINGS_MODE;
                 break;
+            case CALIB_AXIS:
+                // Switching mode for self calibration
+                ble_mode = BLE_CALIB_AXIS_MODE;
         }
     }
 
@@ -341,6 +344,16 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             data[1] = g_battery_int;
             for (iter=0; iter<18; iter++) {
                 data[2+iter] = g_settings[iter];
+            }
+            break;
+        case BLE_CALIB_AXIS_MODE: 
+            data[0] = CALIB_OUTPUT;
+            data[1] = g_battery_int;
+            for (iter=0; iter<8; iter++) {
+                data[2+iter] = g_calib_axis[iter];
+            }
+            for (iter=8; iter<18; iter++) {
+                data[2+iter] = 0;
             }
             break;
         case BLE_FREE_MODE:

@@ -166,8 +166,8 @@
 #define BR25S_MIN_ADDR						0x0000
 #define BR25S_MAX_ADDR						0x1FFF-32
 #define BR25S_ADDR_BATTERY					0x0000
-#define BR25S_ADDR_CALIB					0x0004
-#define BR25S_ADDR_SETTINGS					0x0010
+#define BR25S_ADDR_CALIB					0x1D00
+#define BR25S_ADDR_SETTINGS					0x1E00
 #define BR25S_ADDR_DATA						0x0020
 #define BR25S_MAX_WRITE_BYTE				32
 #define BR25S_CIRCULAR_BUFFER				4064-32
@@ -193,6 +193,8 @@ uint8_t initBR25S(void);
 void initSENSOR(void);
 uint8_t prepareDataSENSOR(uint8_t battery);
 uint8_t prepareDataStickSENSOR(uint16_t* out_data);
+void calibrationAxis(void);
+void loadCalibration(void);
 void dispDataH3LIS331(void);
 void dispDataLSM330(void);
 void stopTIMER2(void);
@@ -219,4 +221,5 @@ extern volatile uint8_t g_index_data;
 extern volatile uint16_t g_real_index;
 extern volatile uint8_t g_settings[18];
 extern volatile uint8_t g_valid;
+extern volatile uint16_t g_calib_axis[8];
 #endif

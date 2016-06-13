@@ -217,6 +217,9 @@ uint16_t delta_tick, delta_tick_flying=0;
 
 uint16_t reconstruction;
 
+// calibration
+volatile uint16_t g_calib_axis[8];
+
 
 
 
@@ -772,12 +775,11 @@ int main(void)
 
     if (wakeup == 0) {
         // Just update the battery and go to sleep
-        
         max_counter = 21250; 
-        
     }
 
     // Get battery level
+    loadCalibration();
     battery_actual = getBatteryLevel();
     if (direction == 2) {
         battery_actual ++;
@@ -787,8 +789,6 @@ int main(void)
     setBatteryLevel(battery_actual);
     nrf_delay_ms(5);
     
-    
-
     while(1)
     {
         sleep_counter++;
@@ -1053,6 +1053,11 @@ int main(void)
                     }
                     break;
                 }
+            } else if (ble_mode == BLE_CALIB_AXIS_MODE) {
+                calibrationAxis();
+                nrf_delay_ms(20);
+                ble_mode = BLE_SETTINGS_MODE;
+
             }
             g_sensor_read_flag--;
 		}

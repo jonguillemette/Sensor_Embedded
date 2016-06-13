@@ -9,6 +9,7 @@ volatile uint8_t g_sensor_read_flag = 0;
 volatile uint8_t g_sensor_shot_data[5][6];
 volatile uint8_t g_sensor_index = 0;
 
+
 void initSENSOR(void)
 {
 	uint32_t utmp32;
@@ -433,6 +434,26 @@ double toDouble(uint8_t low, uint8_t high) {
 	return (double) shortVal;
 }
 
+double toDoubleError(uint8_t low, uint8_t high, uint8_t sign, uint16_t value) {
+	uint16_t conversion_form;
+	double double_form;
+
+	conversion_form = (uint16_t)low | ((uint16_t)(high) << 8);
+	short shortVal = (short) conversion_form;
+	
+	if (sign > 0) {
+		double_form = (double) (shortVal) - (double)value;
+	} else {
+		double_form = (double) (shortVal) + (double)value;
+	}
+
+	if (double_form < 0) {
+		double_form *= -1;
+	}
+
+	return double_form;
+}
+
 uint16_t toUint16(uint8_t low, uint8_t high) {
 	uint16_t conversion_form;
 
@@ -471,9 +492,6 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	uint8_t tx_data[10];
 	uint8_t data[10];
 	uint16_t conversion_form;
-	uint16_t low_accel_noise = g_settings[6];
-	uint16_t high_accel_noise = g_settings[5];
-	uint16_t gyro_noise = g_settings[7];
 	double convert;
 	uint16_t thresh_high = (uint16_t) (g_settings[2])<<8;
 	thresh_high |= g_settings[1];
@@ -483,17 +501,30 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 
 	uint8_t val1, val2;
 
+	uint16_t high_x_g, high_y_g, low_x_g, low_y_g;
+	uint8_t high_x_sign, high_y_sign, low_x_sign, low_y_sign;
+
+	high_x_g = g_calib_axis[0] << 4;
+	high_y_g = g_calib_axis[1] << 4;
+	low_x_g = g_calib_axis[2] << 4;
+	low_y_g = g_calib_axis[3] << 4;
+
+	high_x_sign = g_calib_axis[4];
+	high_y_sign = g_calib_axis[5];
+	low_x_sign = g_calib_axis[6];
+	low_y_sign = g_calib_axis[7];
 
 	// for H3LIS331 accelerometer we are collecting x & y data
 	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
 	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
 	rxtxSPI0(5, g_sensor_tx_buff, data);
-	conversion_form = (uint16_t) pythagore2(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16);
+	conversion_form = (uint16_t) pythagore2(toDoubleError(data[1], data[2], high_x_sign, high_x_g)/16, 
+		toDoubleError(data[3], data[4], high_y_sign, high_y_g)/16);
 	
-	if (conversion_form > high_accel_noise)
+	/*if (conversion_form > high_accel_noise)
 		conversion_form -= high_accel_noise;
 	else
-		conversion_form = 0;
+		conversion_form = 0;*/
 
 	if (thresh_high != 0 && (conversion_form >= thresh_high)) {
 		value_ret = 1;
@@ -507,12 +538,13 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	conversion_form = pythagore2(toDouble(data[1], data[2])/16, toDouble(data[3], data[4])/16);
+	conversion_form = pythagore2(toDoubleError(data[1], data[2], low_x_sign, low_x_g)/16, 
+		toDoubleError(data[3], data[4], low_y_sign, low_y_g)/16);
 
-	if (conversion_form > low_accel_noise)
+	/*if (conversion_form > low_accel_noise)
 		conversion_form -= low_accel_noise;
 	else
-		conversion_form = 0;
+		conversion_form = 0;*/
 
 	if (thresh_high == 0 && (conversion_form >= thresh_low)) {
 		value_ret = 1;
@@ -526,11 +558,6 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	
 	conversion_form = (uint16_t) toDouble(data[1], data[2]);
-
-	if (conversion_form > gyro_noise)
-		conversion_form -= gyro_noise;
-	else
-		conversion_form = 0;
 
 	g_cooked_data[4] = conversion_form & 0xFF;
 	g_cooked_data[5] = conversion_form>>8 & 0xFF;
@@ -627,7 +654,7 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 		ret_value = 1;
 	}
 	
-	// IIf big is smaller than 10G.
+	// If big is smaller than 10G.
 	if (value1_x < 52) {
 		value1_x = value2_x;
 		value1_x += 1<<15;
@@ -646,6 +673,129 @@ uint8_t prepareDataStickSENSOR(uint16_t* out_data)
 	out_data[6] = (toUint16(data[5], data[6])>>4) + (1<<15);
 
 	return ret_value;
+}
+
+// Calbrate the axis.
+void calibrationAxis() {
+	//Step 1, get 10 data of high G and low G
+	uint8_t tx_data[10];
+	uint8_t data[10];
+
+	short high_x_g[10];
+	short high_y_g[10];
+	short low_x_g[10];
+	short low_y_g[10];
+	uint16_t conversion_form;
+	unsigned char i;
+	double casting_low_x, casting_low_y, casting_high_x, casting_high_y;
+
+	uint16_t saveBig[8];
+	uint8_t save[12];
+	
+
+	for (i=0; i<10; i++) {
+		//Read HIGH G
+		EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
+		g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
+		rxtxSPI0(5, g_sensor_tx_buff, data);
+
+		conversion_form = (uint16_t)data[1] | ((uint16_t)(data[2]) << 8);
+		high_x_g[i] = (short) conversion_form / 16;
+
+		conversion_form = (uint16_t)data[3] | ((uint16_t)(data[4]) << 8);
+		high_y_g[i] = (short) conversion_form / 16;
+
+		//Read LOW_G 
+		EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
+		g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+		rxtxSPI0(7, g_sensor_tx_buff, data);
+
+		conversion_form = (uint16_t)data[1] | ((uint16_t)(data[2]) << 8);
+		low_x_g[i] = (short) conversion_form / 16;
+
+		conversion_form = (uint16_t)data[3] | ((uint16_t)(data[4]) << 8);
+		low_y_g[i] = (short) conversion_form / 16;
+	}
+
+	casting_low_x = 0;
+	casting_low_y = 0;
+	casting_high_x = 0;
+	casting_high_y = 0;
+	
+	for (i=0; i<10; i++) {
+		casting_high_x += (double) high_x_g[i];
+		casting_high_y += (double) high_y_g[i];
+		casting_low_x += (double) low_x_g[i];
+		casting_low_y += (double) low_y_g[i];
+	}
+	casting_high_x /= 10;
+	casting_high_y /= 10;
+	casting_low_x /= 10;
+	casting_low_y /= 10;
+
+	high_x_g[0] = (short) casting_high_x;
+	high_y_g[0] = (short) casting_high_y;
+	low_x_g[0] = (short) casting_low_x;
+	low_y_g[0] = (short) casting_low_y;
+
+	high_x_g[1] = casting_high_x < 0 ? 0 : 1;
+	high_y_g[1] = casting_high_y < 0 ? 0 : 1;
+	low_x_g[1] = casting_low_x < 0 ? 0 : 1;
+	low_y_g[1] = casting_low_y < 0 ? 0 : 1;
+	
+
+	g_calib_axis[0] = high_x_g[0] < 0 ? (uint16_t) (high_x_g[0]*-1) : (uint16_t) high_x_g[0];
+	g_calib_axis[1] = high_y_g[0] < 0 ? (uint16_t) (high_y_g[0]*-1) : (uint16_t) high_y_g[0];
+	g_calib_axis[2] = low_x_g[0] < 0 ? (uint16_t) (low_x_g[0]*-1) : (uint16_t) low_x_g[0];
+	g_calib_axis[3] = low_y_g[0] < 0 ? (uint16_t) (low_y_g[0]*-1) : (uint16_t) low_y_g[0];
+	
+	g_calib_axis[4] = (uint16_t) high_x_g[1];
+	g_calib_axis[5] = (uint16_t) high_y_g[1];
+	g_calib_axis[6] = (uint16_t) low_x_g[1];
+	g_calib_axis[7] = (uint16_t) low_y_g[1];
+
+	save[0] = g_calib_axis[0] & 0xFF;
+	save[1] = g_calib_axis[0]>>8 & 0xFF;
+
+	save[2] = g_calib_axis[1] & 0xFF;
+	save[3] = g_calib_axis[1]>>8 & 0xFF;
+
+	save[4] = g_calib_axis[2] & 0xFF;
+	save[5] = g_calib_axis[2]>>8 & 0xFF;
+
+	save[6] = g_calib_axis[3] & 0xFF;
+	save[7] = g_calib_axis[3]>>8 & 0xFF;
+
+	save[8] = g_calib_axis[4] & 0x0001;
+	save[9] = g_calib_axis[5] & 0x0001;
+	save[10] = g_calib_axis[6] & 0x0001;
+	save[11] = g_calib_axis[7] & 0x0001;
+
+	setDatas(save, 12, BR25S_ADDR_CALIB);
+
+}
+
+void loadCalibration() {
+	uint8_t save[12];
+
+	getDatas(save, 12, BR25S_ADDR_CALIB);
+
+	g_calib_axis[0] = (uint16_t) save[0];
+	g_calib_axis[0] += (uint16_t) (save[1])<<8;
+	
+	g_calib_axis[1] = (uint16_t) save[2];
+	g_calib_axis[1] += (uint16_t) (save[3])<<8;
+
+	g_calib_axis[2] = (uint16_t) save[4];
+	g_calib_axis[2] += (uint16_t) (save[5])<<8;
+
+	g_calib_axis[3] = (uint16_t) save[6];
+	g_calib_axis[3] += (uint16_t) (save[7])<<8;
+
+	g_calib_axis[4] = save[8];
+	g_calib_axis[5] = save[9];
+	g_calib_axis[6] = save[10];
+	g_calib_axis[7] = save[11];
 }
 	
 void initTIMER2(void)
