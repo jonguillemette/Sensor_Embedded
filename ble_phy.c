@@ -243,25 +243,31 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 // Switching mode
                 g_state = 0; //Restart state machine
                 ble_mode = BLE_SHOT_MODE;
+                initTIMER2();
                 break;
             case FREE_MODE: 
                 // Switching mode
                 g_state = 0; //Restart state machine
                 ble_mode = BLE_FREE_MODE;
+                initTIMER2();
                 break;
             case STICK_MODE: // Same as STICK_START
                 // Switching mode
                 g_state = 0; // Restart state machine
                 g_angle = 0; // Reset angle
                 ble_mode = BLE_STICK_MODE;
+                initTIMER2();
                 break;
             case SETTINGS_MODE:
                 // Switching mode
                 ble_mode = BLE_SETTINGS_MODE;
+                initTIMER2();
                 break;
             case CALIB_AXIS:
                 // Switching mode for self calibration
                 ble_mode = BLE_CALIB_AXIS_MODE;
+                initTIMER2();
+                break;
         }
     }
 

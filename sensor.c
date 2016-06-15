@@ -1,4 +1,5 @@
 #include "sensor.h"
+#include "ble_phy.h"
 
 volatile uint8_t g_sensor_ridx;
 volatile uint8_t g_sensor_widx;
@@ -849,8 +850,12 @@ void initTIMER2(void)
 	NRF_TIMER2->MODE = 0x0000;				  							// set timer mode
 	NRF_TIMER2->TASKS_CLEAR = 1;               							// clear the task first to be usable for later
 	NRF_TIMER2->PRESCALER = 0x0004;										// 16MHz clock & 16 prescaler means 1MHz timer clock
-	NRF_TIMER2->BITMODE = 0x00;											// Set counter to 16 bit resolution
-	NRF_TIMER2->CC[0] = 1250;											// tick on each 800Hz!
+	NRF_TIMER2->BITMODE = 0x00;		// Set counter to 16 bit resolution
+	if (ble_mode == BLE_SHOT_MODE)			 {
+		NRF_TIMER2->CC[0] = 1000; // 1000Hz
+	} else {
+		NRF_TIMER2->CC[0] = 1250; // 800Hz
+	}
 	
 	// enable interrupt on Timer 2
 	//NRF_TIMER2->INTENSET = TIMER_INTENSET_COMPARE0_Enabled
