@@ -576,9 +576,15 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	conversion_form = pythagore2(toDoubleError(data[1], data[2], low_x_sign, low_x_g)/16, 
-		toDoubleError(data[3], data[4], low_y_sign, low_y_g)/16);
+	conversion_form = pythagore3(toDoubleError(data[1], data[2], low_x_sign, low_x_g)/16, 
+		toDoubleError(data[3], data[4], low_y_sign, low_y_g)/16, toDouble(data[5], data[6])/16);
 
+	//Conversion regarding gravity
+	if (conversion_form > 83) {
+		conversion_form -= 83;
+	} else {
+		conversion_form = 0;
+	}
 	/*if (conversion_form > low_accel_noise)
 		conversion_form -= low_accel_noise;
 	else
