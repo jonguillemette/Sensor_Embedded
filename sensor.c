@@ -27,34 +27,8 @@ void initSENSOR(void)
 	
 	
 	initSPI0(SPI_DATARATE_4Mbps);										// init SPI interface at 4MHz
-	
-	if(!initADXL())													// init LSM330 sensor
-	{
-       printUSART0("ADXL init     [ERROR]\n",0);
-       while(1);
-    }
-	printUSART0("ADXL init     [DONE]\n",0);
 
-	if(!initBR25S())													// init LSM330 sensor
-	{
-       printUSART0("BR25S init     [ERROR]\n",0);
-       while(1);
-    }
-	printUSART0("BR25S init     [DONE]\n",0);
-
-	if(!initH3LIS331())													// init H3LIS331 sensor
-	{
-       printUSART0("H3LIS331 init   [ERROR]\n",0);
-       while(1);
-    }
-	printUSART0("H3LIS331 init   [DONE]\n",0);
-	
-	if(!initLSM330())													// init LSM330 sensor
-	{
-       printUSART0("LSM330 init     [ERROR]\n",0);
-       while(1);
-    }
-	printUSART0("LSM330 init     [DONE]\n",0);
+	initH3LIS331();											// init H3LIS331 sensor
 	
 	
 
@@ -591,14 +565,19 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_cooked_data[3] = conversion_form>>8 & 0xFF;
 
 	// for LSM330 gyroscope we are collecting z data
-	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
-	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
-	rxtxSPI0(3, g_sensor_tx_buff, data);
+	//EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
+	//g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	//rxtxSPI0(3, g_sensor_tx_buff, data);
 	
-	conversion_form = (uint16_t) toDouble(data[1], data[2]);
+	//conversion_form = (uint16_t) toDouble(data[1], data[2]);
 
-	g_cooked_data[4] = conversion_form & 0xFF;
-	g_cooked_data[5] = conversion_form>>8 & 0xFF;
+	EN_SPI_ADXRS649Z;
+	tx_data[0];
+	tx_data[1];
+	rxtxSPI0(2, tx_data, data);
+
+	g_cooked_data[4] = data[1];
+	g_cooked_data[5] = data[0];
 
 	return value_ret;
 }

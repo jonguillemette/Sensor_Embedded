@@ -182,6 +182,7 @@
 #define EN_SPI_G_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_G);
 #define EN_SPI_ADXL362		g_spi_cs_pin = (ADXL362_SPI_CS);
 #define EN_SPI_BR25S		g_spi_cs_pin = (BR25S_SPI_CS);
+#define EN_SPI_ADXRS649Z	g_spi_cs_pin = (ADXRS649Z_CS);
 
 #define SENSOR_READY2READ					0x00
 #define SENSOR_NOT_READY2READ				0x01
@@ -190,6 +191,7 @@ uint8_t initH3LIS331(void);
 uint8_t initLSM330(void);
 uint8_t initADXL(void);
 uint8_t initBR25S(void);
+
 void initSENSOR(void);
 uint8_t prepareDataSENSOR(uint8_t battery);
 uint8_t prepareDataStickSENSOR(uint16_t* out_data);

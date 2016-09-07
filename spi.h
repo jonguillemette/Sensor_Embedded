@@ -22,6 +22,7 @@ extern volatile uint8_t g_spi_cs_pin;
 #define ADXL362_SPI_CS			15
 #define BR25S_SPI_CS			28
 */
+#define ADXRS649Z_CS			4
 #define LSM330_SPI_CS_A			6
 #define LSM330_SPI_CS_G			7
 #define SPI0_SCK				8

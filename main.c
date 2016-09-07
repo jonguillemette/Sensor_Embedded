@@ -703,24 +703,12 @@ int main(void)
     nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
 
 
-    nrf_gpio_cfg_input(4, NRF_GPIO_PIN_NOPULL);
     nrf_gpio_cfg_input(29, NRF_GPIO_PIN_NOPULL); //
 
     
-    if (nrf_gpio_pin_read(4) == 1) {
-        wakeup = 1;
-    }
-    else
-    {
-        if (nrf_gpio_pin_read(29) == 1) { //
-            direction = 2;
-        } else {
-            direction = 1;
-        }
-    }
+    direction = 1;
 
     
-    nrf_gpio_cfg_sense_input(4, NRF_GPIO_PIN_NOPULL , NRF_GPIO_PIN_SENSE_HIGH);
     nrf_delay_ms(1);
 
     
@@ -793,14 +781,6 @@ int main(void)
     {
         sleep_counter++;
         
-        if (sleep_counter >= max_counter) {
-            initH3LIS331();
-            initLSM330();
-            nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
-            setBatteryLevel(battery_actual);
-            nrf_delay_ms(5);
-            NRF_POWER->SYSTEMOFF = 0x1;
-        }
         
         float battery_conv = (float)battery_actual/(float)battery_max;
         battery_conv *= 100;

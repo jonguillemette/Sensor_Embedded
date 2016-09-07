@@ -10,9 +10,12 @@ void initSPI0(uint32_t freq)
 	NRF_GPIO->PIN_CNF[SPI0_MOSI] = 0x00000001;							// set as output
 	NRF_GPIO->PIN_CNF[SPI0_MISO] = 0x00000000;							// set as input, sense off, drive S0S1, pull-down
 	
-	NRF_GPIO->PIN_CNF[H3LIS331_SPI_CS] = 0x00000301;					// set as output
-	NRF_GPIO->OUTSET = (1<<H3LIS331_SPI_CS);							// set CS to high state
+	NRF_GPIO->PIN_CNF[ADXRS649Z_CS] = 0x00000001;					// set as output
+	NRF_GPIO->OUTSET = (1<<ADXRS649Z_CS);							// set CS to high state
 	
+    NRF_GPIO->PIN_CNF[H3LIS331_SPI_CS] = 0x00000001;                    // set as output
+    NRF_GPIO->OUTSET = (1<<H3LIS331_SPI_CS);    
+
 	NRF_GPIO->PIN_CNF[LSM330_SPI_CS_A] = 0x00000001;					// set as output
 	NRF_GPIO->OUTSET = (1<<LSM330_SPI_CS_A);							// set CS to high state
 	
