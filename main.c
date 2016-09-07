@@ -159,9 +159,10 @@ static dm_application_instance_t         m_app_handle;                          
 static int m_send_packet = 0;
 
 // Battery
-//110mAh
-uint16_t battery_max = 30935*2;
-volatile uint16_t battery_actual = 30935*2;
+//160 mAh
+
+uint16_t battery_max = 44997;
+volatile uint16_t battery_actual = 44997;
 volatile uint8_t symbol = 0;
 volatile uint8_t g_battery_int;
 
@@ -796,6 +797,7 @@ int main(void)
         if (sleep_counter >= max_counter) {
             initH3LIS331();
             initLSM330();
+            initADXL();
             nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
             setBatteryLevel(battery_actual);
             nrf_delay_ms(5);
