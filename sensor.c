@@ -31,28 +31,28 @@ void initSENSOR(void)
 	if(!initADXL())													// init LSM330 sensor
 	{
        printUSART0("ADXL init     [ERROR]\n",0);
-       while(1);
+       //while(1);
     }
 	printUSART0("ADXL init     [DONE]\n",0);
 
 	if(!initBR25S())													// init LSM330 sensor
 	{
        printUSART0("BR25S init     [ERROR]\n",0);
-       while(1);
+       //while(1);
     }
 	printUSART0("BR25S init     [DONE]\n",0);
 
 	if(!initH3LIS331())													// init H3LIS331 sensor
 	{
        printUSART0("H3LIS331 init   [ERROR]\n",0);
-       while(1);
+       //while(1);
     }
 	printUSART0("H3LIS331 init   [DONE]\n",0);
 	
 	if(!initLSM330())													// init LSM330 sensor
 	{
        printUSART0("LSM330 init     [ERROR]\n",0);
-       while(1);
+       //while(1);
     }
 	printUSART0("LSM330 init     [DONE]\n",0);
 	

@@ -1,3 +1,5 @@
+/// make clean; make; make merge; make mob-app
+
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// Pin description
 ///------------------
@@ -219,6 +221,11 @@ uint16_t reconstruction;
 
 // calibration
 volatile uint16_t g_calib_axis[8];
+
+// PowerDown routine
+volatile uint8_t g_power_down = 1;
+// 1 = Sleep after max_counter
+// 0 = Sleep after search_counter
 
 
 
@@ -694,6 +701,7 @@ int main(void)
     uint8_t wakeup = 0;
     uint32_t battery_percent_int = 0;
     uint32_t max_counter = 212500;
+    uint32_t search_counter = max_counter * 4; // ~ 2min
     uint8_t direction = 0;
     uint8_t i = 0;
     uint8_t value;
@@ -756,6 +764,7 @@ int main(void)
     conn_params_init();
     sec_params_init();
     
+    nrf_delay_ms(20);
 	initSENSOR();
     nrf_delay_ms(5); // EEPROM save
 	advertising_start();
@@ -793,13 +802,29 @@ int main(void)
     {
         sleep_counter++;
         
-        if (sleep_counter >= max_counter) {
+        if ((sleep_counter >= max_counter && g_power_down == 1)
+            || (sleep_counter >= search_counter && g_power_down == 0)) {
             initH3LIS331();
             initLSM330();
             nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
+            initADXL();
             setBatteryLevel(battery_actual);
-            nrf_delay_ms(5);
+            nrf_delay_ms(100);
+            stopTIMER2();               
+            NRF_GPIO->OUTSET = (1<<H3LIS331_SPI_CS);
+            NRF_GPIO->OUTSET = (1<<LSM330_SPI_CS_A); 
+            NRF_GPIO->OUTSET = (1<<LSM330_SPI_CS_G); 
+            NRF_GPIO->OUTSET = (1<<ADXL362_SPI_CS);  
+            NRF_GPIO->OUTSET = (1<<BR25S_SPI_CS);  
+            advertising_stop();
+            NRF_POWER->RAMON |= (POWER_RAMON_OFFRAM0_RAM0Off << POWER_RAMON_OFFRAM0_Pos) |
+                        (POWER_RAMON_OFFRAM1_RAM1Off << POWER_RAMON_OFFRAM1_Pos);
+
             NRF_POWER->SYSTEMOFF = 0x1;
+            (void) NRF_POWER->SYSTEMOFF;
+            while(true){
+                NRF_POWER->SYSTEMOFF = 0x1;
+            }
         }
         
         float battery_conv = (float)battery_actual/(float)battery_max;
@@ -815,10 +840,6 @@ int main(void)
                     value = 0;
                 }
 
-                /*for (i=0; i<6; i++) {
-                    g_data_send[g_index_data] = g_cooked_data[i];
-                    g_index_data++;
-                }*/
                 for (i=0; i<6; i++) {
                     g_data_send[g_index_data+i] = g_cooked_data[i];
                     
@@ -869,7 +890,7 @@ int main(void)
                                    
                             };
 
-                            setDatas(/*send*/g_data_send, 30, g_real_index);
+                            setDatas(g_data_send, 30, g_real_index);
                             g_real_index += 32; // Page are 32.
                             g_index_data = 0;
                             if (g_real_index >= BR25S_CIRCULAR_BUFFER)
@@ -889,12 +910,7 @@ int main(void)
                 if (g_angle < 0) {
                     g_angle += 360;
                 }
-                /*g_data_send[0] = value;
-                g_data_send[2] = middle_value[2];
-                g_data_send[3] = middle_value[3];
-                g_data_send[4] = middle_value[4];
-                g_data_send[5] = middle_value[5];
-                g_data_send[6] = middle_value[6];*/
+                
                 
                 switch (g_state) {
                 case 0:
@@ -941,19 +957,7 @@ int main(void)
                         rotation_max = middle_value[0];
                         g_state = 1;
                     } else {
-                        /*g_data_send[0] = middle_value[0] & 0xFF;
-                        g_data_send[1] = middle_value[0]>>8 & 0xFF;
-                        g_data_send[2] = middle_value[1] & 0xFF;
-                        g_data_send[3] = middle_value[1]>>8 & 0xFF;
-                        g_data_send[4] = middle_value[2] & 0xFF;
-                        g_data_send[5] = middle_value[2]>>8 & 0xFF;
-                        g_data_send[6] = middle_value[3] & 0xFF;
-                        g_data_send[7] = middle_value[3]>>8 & 0xFF;
-                        g_data_send[8] = middle_value[4] & 0xFF;
-                        g_data_send[9] = middle_value[4]>>8 & 0xFF;
-                        g_data_send[10] = middle_value[5] & 0xFF;
-                        g_data_send[11] = middle_value[5]>>8 & 0xFF;
-                        */
+                        
                         delta_tick_flying++;
                     }
                     
@@ -1064,6 +1068,7 @@ int main(void)
         if(g_ble_conn) {
             if (!transmit) {
                 transmit = true;
+                g_power_down = 0;
                 initPowerH3LIS331();
                 initPowerLSM330();
             }
@@ -1072,4 +1077,5 @@ int main(void)
             max_counter = 212500;
         }
     }
+    
 }

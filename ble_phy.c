@@ -268,6 +268,9 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 ble_mode = BLE_CALIB_AXIS_MODE;
                 initTIMER2();
                 break;
+            case POWER_DOWN_CORRECT:
+                g_power_down = 1;
+                break;
         }
     }
 

@@ -96,6 +96,7 @@ typedef enum
 #define FREE_MODE                       0x0D
 #define CALIB_OUTPUT                    0x0E
 #define CALIB_AXIS                      0x0F
+#define POWER_DOWN_CORRECT              0x11
 
 
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);
@@ -127,5 +128,6 @@ extern volatile uint16_t g_skip[5];
 extern volatile uint16_t g_index_skip;
 extern volatile double g_angle;
 extern volatile uint16_t g_calib_axis[8];
+extern volatile uint8_t g_power_down;
 #endif 
 
