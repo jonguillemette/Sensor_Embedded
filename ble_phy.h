@@ -66,7 +66,7 @@ typedef struct ble_pss_s												// various status information for the servic
 typedef enum 
 {
 
-    BLE_SHOT_MODE = 0,
+    BLE_LAUNCH_MODE = 0,
     BLE_STICK_MODE=1,
     BLE_FREE_MODE=2,
     BLE_OTHER_MODE=3,
@@ -85,9 +85,12 @@ typedef enum
 #define SETTINGS_READ                   0x02
 #define SETTINGS_NEW                    0x03
 #define DATA                            0x04
+#define SHOT_SEQUENCE                   0x04
 #define DATA_READY                      0x05
 #define SHOT_MODE                       0x05 //
+#define LAUNCH_MODE                     0x05 //
 #define DATA_END                        0x06
+#define LAUNCH_READY                    0x06
 #define DATA_START                      0x08
 #define DATA_DRAFT                      0x0A
 #define STICK_START                     0x0B
@@ -97,6 +100,12 @@ typedef enum
 #define CALIB_OUTPUT                    0x0E
 #define CALIB_AXIS                      0x0F
 #define POWER_DOWN_CORRECT              0x11
+
+// Other configs:
+#define HOGLINE_FINISH                  0x10;
+#define MOVEMENT_FINISH                 0x11;
+#define PLAYER_ID                       0x01;
+#define MAGNETO_DATA                    0x02;
 
 
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init);
@@ -129,5 +138,8 @@ extern volatile uint16_t g_index_skip;
 extern volatile double g_angle;
 extern volatile uint16_t g_calib_axis[8];
 extern volatile uint8_t g_power_down;
+extern volatile uint8_t g_detect_player;
+extern volatile uint8_t g_player_id[17];
+
 #endif 
 

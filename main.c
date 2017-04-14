@@ -30,6 +30,8 @@
 /// P0.15   - Int coulomb counter
 /// P0.28   - SPI CS - BR25S
 /// P0.29   - Polarity coulomb counter
+/// P0.12   - SPI CS - LIS3MDL (Magneto)
+/// P0.13   - SPI CS - PN532 (NFC 13.56Mhz)
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 /// BLE Physics primary service 0x2000 (short UUID)
 /// BLE Physics characteristics 0x2E00 (short UUID)
@@ -170,6 +172,10 @@ volatile uint8_t g_battery_int;
 // Shot mode
 volatile uint8_t settings_flag = 0;
 
+// Launch mode
+volatile uint8_t g_detect_player = 0;
+volatile uint8_t g_player_id[17];
+volatile uint8_t g_magneto_data[2];
 
 // Mode management
 volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
@@ -804,7 +810,7 @@ int main(void)
         
         if ((sleep_counter >= max_counter && g_power_down == 1)
             || (sleep_counter >= search_counter && g_power_down == 0)) {
-            initH3LIS331();
+            
             initLSM330();
             nrf_gpio_cfg_sense_input(6, NRF_GPIO_PIN_PULLUP , NRF_GPIO_PIN_SENSE_LOW);
             initADXL();
@@ -833,7 +839,7 @@ int main(void)
 
         if(g_sensor_read_flag>0)
         {
-            if (g_valid && (ble_mode == BLE_SHOT_MODE || ble_mode == BLE_SETTINGS_MODE || ble_mode == BLE_FREE_MODE)) {
+            if (g_valid && (ble_mode == BLE_LAUNCH_MODE || ble_mode == BLE_SETTINGS_MODE || ble_mode == BLE_FREE_MODE)) {
                 value = prepareDataSENSOR(g_battery_int);
                 if (ble_mode == BLE_FREE_MODE) {
                     // Free mode send only draft data
@@ -844,24 +850,6 @@ int main(void)
                     g_data_send[g_index_data+i] = g_cooked_data[i];
                     
                 }
-                switch (g_state) {
-                    default:
-                    case 0: //DRAFT
-                        
-                        if (value == 1 && ble_mode == BLE_SHOT_MODE) {
-                            g_state = 1;
-                            g_remember = g_real_index;
-                            g_start = BR25S_LEFT_OVER;
-                        }
-                        break;
-                    case 1: // GATHER
-                        g_start --;
-                        if (g_start <= 0) {
-                            g_state = 2;
-                            g_valid = 0;
-                        }
-                        break;
-                }
                 g_index_data += 6;
                 if (g_state <= 1) {
                     if (g_index_data >= 30 && g_valid) { //Send data to memory
@@ -871,25 +859,7 @@ int main(void)
                             g_index_data = 0; // Loose for 6.25 ms of data
                         } else {
                             getSettings(g_settings);
-                            uint8_t send[30] = {
-                                0,0,
-                                1,1,
-                                2,2,
-                                0,0,
-                                1,1,
-                                2,2,
-                                0,0,
-                                1,1,
-                                2,2,
-                                0,0,
-                                1,1,
-                                2,2,
-                                0,0,
-                                1,1,
-                                2,2
-                                   
-                            };
-
+               
                             setDatas(g_data_send, 30, g_real_index);
                             g_real_index += 32; // Page are 32.
                             g_index_data = 0;
@@ -898,165 +868,13 @@ int main(void)
                         }
                     }
                 }
-            } else if (ble_mode == BLE_STICK_MODE) {
-                value = prepareDataStickSENSOR(middle_value);
-                if (middle_value[1] == 0) {
-                    g_angle += -(double)middle_value[0] * 0.07 * 0.00125;
+
+                // State machine for Curling
                 
-                } else {
-                   g_angle += (double)middle_value[0] * 0.07 * 0.00125;
-                 
-                }
-                if (g_angle < 0) {
-                    g_angle += 360;
-                }
-                
-                
-                switch (g_state) {
-                case 0:
-                    // Sleep mode, add value for rotation.
-                    if (value == 1) {
-                        
-                        if (middle_value[2] >= (1<<15)) {
-                            //LOW_G
-                            accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
-                        } else {
-                            // HIGH_G
-                            accel_x = (double) (middle_value[2]) * 0.195;
-                        }
-
-                        if (middle_value[4] >= (1<<15)) {
-                            //LOW_G
-                            accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
-                        } else {
-                            // HIGH_G
-                            accel_y = (double) (middle_value[4]) * 0.195;
-                        }
-
-                        accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
-
-                        
-                        // No need for Z
-
-
-
-                        accel_max_x = accel_x;
-                        accel_max_y = accel_y;
-                        accel_mean_x = accel_x;
-                        accel_mean_y = accel_y;
-                        // SIGN
-                        if (middle_value[3] == 0)
-                            accel_x *= -1;
-                        if (middle_value[5] == 0)
-                            accel_y *= -1;
-                        accel_init_x = accel_x;
-                        accel_init_y = accel_y;
-                        accel_max_z = accel_z;
-                        delta_tick = 1;
-                        direction_init = (uint8_t) (g_angle);
-                        rotation_max = middle_value[0];
-                        g_state = 1;
-                    } else {
-                        
-                        delta_tick_flying++;
-                    }
-                    
-                    break;
-                case 1:
-                    // Detect event, accumulate
-                    if (value == 1) {
-                        //Continue
-                        if (middle_value[2] >= (1<<15)) {
-                            //LOW_G
-                            accel_x = (double) (middle_value[2] - (1<<15)) * 0.012;
-                        } else {
-                            // HIGH_G
-                            accel_x = (double) (middle_value[2]) * 0.195;
-                        }
-
-                        if (middle_value[4] >= (1<<15)) {
-                            //LOW_G
-                            accel_y = (double) (middle_value[4] - (1<<15)) * 0.012;
-                        } else {
-                            // HIGH_G
-                            accel_y = (double) (middle_value[4]) * 0.195;
-                        }
-
-                        accel_z = (double) (middle_value[6] - (1<<15)) * 0.012;
-
-                        
-                        // No need for Z
-
-                        delta_tick++;
-
-                        // 
-                        accel_max_x = accel_max_x > accel_x ? accel_max_x : accel_x;
-                        accel_max_y = accel_max_y > accel_y ? accel_max_y : accel_y;
-                        accel_mean_x = ((accel_mean_x * (delta_tick-1)) + accel_x) / delta_tick;
-                        accel_mean_y = ((accel_mean_y * (delta_tick-1)) + accel_y) / delta_tick;
-                        accel_max_z = accel_max_z > accel_z ? accel_max_z : accel_z;
-                        rotation_max = rotation_max > (double) middle_value[0] ? rotation_max : (double) middle_value[0];
-
-                        // SIGN
-                        if (middle_value[3] == 0)
-                            accel_x *= -1;
-                        if (middle_value[5] == 0)
-                            accel_y *= -1;
-
-                        // If it's the last
-                        accel_end_x = accel_x;
-                        accel_end_y = accel_y;
-                        direction_end = (uint8_t) (g_angle);
-                    } else {
-
-                        // Build data
-                        reconstruction = getConversion(accel_init_x);
-                        g_data_send[0] = reconstruction & 0xFF;
-                        g_data_send[1] = reconstruction>>8 & 0xFF;
-
-                        reconstruction = getConversion(accel_init_y);
-                        g_data_send[2] = reconstruction & 0xFF;
-                        g_data_send[3] = reconstruction>>8 & 0xFF;
-
-                        reconstruction = getConversion(accel_end_x);
-                        g_data_send[4] = reconstruction & 0xFF;
-                        g_data_send[5] = reconstruction>>8 & 0xFF;
-
-                        reconstruction = getConversion(accel_end_y);
-                        g_data_send[6] = reconstruction & 0xFF;
-                        g_data_send[7] = reconstruction>>8 & 0xFF;
-
-                        g_data_send[8] = direction_init;
-
-                        g_data_send[9] = direction_end;
-
-                        reconstruction = getConversion(sqrt(pow(accel_mean_x,2) + pow(accel_mean_y,2)));
-                        g_data_send[10] = reconstruction & 0xFF;
-                        g_data_send[11] = reconstruction>>8 & 0xFF;
-
-                        reconstruction = getConversion(sqrt(pow(accel_max_x,2) + pow(accel_max_y,2)));
-                        g_data_send[12] = reconstruction & 0xFF;
-                        g_data_send[13] = reconstruction>>8 & 0xFF;
-
-                        reconstruction = getConversion(accel_max_z);
-                        g_data_send[14] = reconstruction & 0xFF;
-                        g_data_send[15] = reconstruction>>8 & 0xFF;
-
-                        g_data_send[16] = rotation_max & 0xFF;
-                        g_data_send[17] = rotation_max>>8 & 0xFF;
-
-                        g_data_send[18] = delta_tick & 0xFF;
-                        g_data_send[19] = delta_tick>>8 & 0xFF;
-
-                        g_data_send[20] = delta_tick_flying & 0xFF;
-                        g_data_send[21] = delta_tick_flying>>8 & 0xFF;
-
-                        g_state = 2;
-
-                        delta_tick_flying = 0;
-                    }
-                    break;
-                }
+                g_detect_player = getPlayerID();
+                getMagneto();
+                // Testing
+                g_detect_player = 0; // Force no detection
             } else if (ble_mode == BLE_CALIB_AXIS_MODE) {
                 calibrationAxis();
                 nrf_delay_ms(20);
@@ -1069,7 +887,6 @@ int main(void)
             if (!transmit) {
                 transmit = true;
                 g_power_down = 0;
-                initPowerH3LIS331();
                 initPowerLSM330();
             }
 

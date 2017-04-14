@@ -239,10 +239,10 @@ static void onWriteAccessPHYSEN(ble_pss_t * p_pss, ble_evt_t * p_ble_evt)
                 }
                 settings_flag = len;
                 break;
-            case SHOT_MODE: // Same as DATA_READY
+            case LAUNCH_MODE: // Same as DATA_READY
                 // Switching mode
                 g_state = 0; //Restart state machine
-                ble_mode = BLE_SHOT_MODE;
+                ble_mode = BLE_LAUNCH_MODE;
                 initTIMER2();
                 break;
             case FREE_MODE: 
@@ -365,69 +365,59 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 data[2+iter] = 0;
             }
             break;
-        case BLE_FREE_MODE:
-        case BLE_OTHER_MODE: 
-        case BLE_SHOT_MODE:
-            // TODO mode magement
-            // Draft mode and real mode mangement
-            // Indexing later
+
+        case BLE_LAUNCH_MODE:
             switch(g_state) {
             case 0:
-            case 1:
-                
-                data[0] = DATA_DRAFT;
+                data[0] = LAUNCH_READY;
                 data[1] = g_battery_int;
 
-                for (iter_data = 0; iter_data<3; iter_data++) {
-                    for (iter=0; iter<6; iter++) {
-                        data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
+                if (g_detect_player) {
+                    data[2] = PLAYER_ID;
+                    for (iter=0; iter<17; iter++) {
+                        data[3+iter] = g_player_id[iter];
                     }
                 }
+                else
+                {
+                    data[2] = MAGNETO_DATA;
+                    for (iter=0; iter<2; iter++) {
+                        data[3+iter] = g_player_id[iter];
+                    }
+                    for (iter=3; iter<17; iter++) {
+                        data[3+iter] = 0;
+                    }
+                }
+                break;
+            case 1:
+                data[0] = SHOT_SEQUENCE;
+                data[1] = g_battery_int;
+                data[2] = HOGLINE_FINISH;
+                for (iter=0; iter<4; iter++) {
+                    data[3+iter] = g_data_send[iter];
+                }
+
                 break;
             case 2:
-                data[0] = DATA_START;
+                data[0] = SHOT_SEQUENCE;
                 data[1] = g_battery_int;
-                // 300 for 30, but 32 indexes system.
-                // Take ratio (300 / (30/32))
-                //TODO
-                if (g_remember < 320) {
-                    g_remember = BR25S_CIRCULAR_BUFFER - (320-g_remember);
-                } else {
-                    g_remember -= 320;
+                data[2] = MOVEMENT_FINISH;
+                for (iter=0; iter<4; iter++) {
+                    data[3+iter] = g_data_send[iter];
                 }
-                g_shot_br25s_index = 0;
-                break;
-            case 3:
-                data[0] = DATA;
-                data[1] = g_battery_int;
-                break;
-            case 4:
-                data[0] = DATA_END;
-                data[1] = g_battery_int;
                 break;
             }
+            break;
+        case BLE_FREE_MODE:
+        case BLE_OTHER_MODE: 
+            data[0] = DATA_DRAFT;
+            data[1] = g_battery_int;
 
-            if (g_state >= 2) {
-                new_remember = g_remember;
-
-                for (iter_data=0; iter_data<3; iter_data++) {
-
-                    getDatas(memory, 6, new_remember);
-                    
-                    new_remember += g_skip[g_index_skip % 5];
-                    add += g_skip[g_index_skip % 5];
-                    g_index_skip++;
-
-                    if (new_remember >= BR25S_CIRCULAR_BUFFER) {
-                        new_remember = 0;
-                    }
-
-                    for (iter=0; iter<6; iter++) {
-                        data[2+iter + (iter_data*6)] = memory[iter];
-                    }
+            for (iter_data = 0; iter_data<3; iter_data++) {
+                for (iter=0; iter<6; iter++) {
+                    data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
                 }
             }
-
             break;
         }
 		hvx_params.p_data = data;
@@ -442,6 +432,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             return err_code;
         }
 
+        /*
         // Add only if complete data
         if (ble_mode == BLE_SHOT_MODE && err_code == NRF_SUCCESS && g_state >= 2) {
 
@@ -470,7 +461,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
         } else if (g_state >= 2) {
             // Reinit some value
             g_index_skip = skip;
-        }
+        }*/
     }
 	else
 	{
@@ -478,7 +469,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 	}
 
     
-    if ((ble_mode == BLE_SHOT_MODE || ble_mode == BLE_FREE_MODE) && g_state <= 1) {
+    if ((ble_mode == BLE_LAUNCH_MODE || ble_mode == BLE_FREE_MODE)) {
         return NRF_ERROR_INVALID_STATE; // Send only one data 
     }
 

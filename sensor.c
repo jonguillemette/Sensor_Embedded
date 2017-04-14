@@ -42,12 +42,7 @@ void initSENSOR(void)
     }
 	printUSART0("BR25S init     [DONE]\n",0);
 
-	if(!initH3LIS331())													// init H3LIS331 sensor
-	{
-       printUSART0("H3LIS331 init   [ERROR]\n",0);
-       //while(1);
-    }
-	printUSART0("H3LIS331 init   [DONE]\n",0);
+	
 	
 	if(!initLSM330())													// init LSM330 sensor
 	{
@@ -56,6 +51,8 @@ void initSENSOR(void)
     }
 	printUSART0("LSM330 init     [DONE]\n",0);
 	
+
+	initLIS3MDL();
 	
 
 	NVIC_SetPriority(TIMER2_IRQn, 3);
@@ -63,60 +60,26 @@ void initSENSOR(void)
 	//initTIMER2();														// init TIMER2 with 1ms interrupt
 }
 
-uint8_t initH3LIS331(void)
-{/// init H3LIS331 sensor using SPI interface
-	uint8_t tx_data[4], rx_data[4];
+uint8_t initLIS3MDL(void)
+{/// init Magneto sensor using SPI interface
+	uint8_t tx_data[6], rx_data[6];
 	uint8_t r_val;
 	
-	EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
-	tx_data[0] = (H3LIS331_WHO_AM_I_REG)|(SPI_READ_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = 0x00;
-	r_val = rxtxSPI0(2, tx_data, rx_data);
+	EN_SPI_LIS3MDL;	
+	tx_data[0] = 0x60;
+	tx_data[0] = 0x62; //CTRL_REG1 
+	tx_data[0] = 0x00; //CTRL_REG2
+	tx_data[0] = 0x00; //CTRL_REG3
+	tx_data[0] = 0x0C; //CTRL_REG4
+	tx_data[0] = 0x00; //CTRL_REG5 
+	r_val = rxtxSPI0(6, tx_data, rx_data);
 	if(r_val == 0x00)													
 		return 0x00;													// SPI failed to communicate with sensor
 	
-	if(rx_data[1] != (H3LIS331_I2C_ADDR))								// check if we have correct sensor -> H3LIS331
-		return 0x00;
-	
-	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-	// setup accelerometer parameters
-	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-	tx_data[0] = (H3LIS331_CTRL_REG_1)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = 0x00; // Power down
-	r_val = rxtxSPI0(2, tx_data, rx_data);
-	if(r_val == 0x00)													
-		return 0x00;													// SPI failed to communicate with sensor
-	
-	// setup sensor parameters, write config data to Control Register 4
-	tx_data[0] = (H3LIS331_CTRL_REG_4)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = (H3LIS331_BDU)|(H3LIS331_SCALE_400g);					// 400g range + disable update during the read
-	r_val = rxtxSPI0(2, tx_data, rx_data);
-	if(r_val == 0x00)													// SPI failed to communicate with sensor
-		return 0x00;
 	
 	return 0x01;
 }
 
-uint8_t initPowerH3LIS331(void)
-{/// init H3LIS331 sensor using SPI interface
-	uint8_t tx_data[4], rx_data[4];
-	uint8_t r_val;
-	
-	EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
-
-	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-	// setup accelerometer parameters
-	//wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-	tx_data[0] = (H3LIS331_CTRL_REG_1)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	// normal work mode, 1kHz sample rate and enable all three axeses 
-	tx_data[1] = (H3LIS331_POWER_MODE_NORMAL)|(H3LIS331_ODR_1000Hz);		
-	tx_data[1] |= (H3LIS331_ENABLE_Z_AXIS)|(H3LIS331_ENABLE_Y_AXIS)|(H3LIS331_ENABLE_X_AXIS);
-	r_val = rxtxSPI0(2, tx_data, rx_data);
-	if(r_val == 0x00)													
-		return 0x00;													// SPI failed to communicate with sensor
-
-	return 0x01;
-}
 
 uint8_t initLSM330(void)
 {/// init LSM330 sensor using SPI interface
@@ -552,25 +515,7 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	low_x_sign = g_calib_axis[6];
 	low_y_sign = g_calib_axis[7];
 
-	// for H3LIS331 accelerometer we are collecting x & y data
-	EN_SPI_H3LIS331;													// enable SPI communication for L3LIS331 sensor
-	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
-	rxtxSPI0(5, g_sensor_tx_buff, data);
-	conversion_form = (uint16_t) pythagore2(toDoubleError(data[1], data[2], high_x_sign, high_x_g)/16, 
-		toDoubleError(data[3], data[4], high_y_sign, high_y_g)/16);
 	
-	/*if (conversion_form > high_accel_noise)
-		conversion_form -= high_accel_noise;
-	else
-		conversion_form = 0;*/
-
-	if (thresh_high != 0 && (conversion_form >= thresh_high)) {
-		value_ret = 1;
-	}
-	
-	//g_cooked_data[0] = conversion_form & 0xFF;
-	//g_cooked_data[1] = conversion_form>>8 & 0xFF;
-
 	// for LSM330 accelerometer we are collecting x, y & z data
 	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
@@ -604,127 +549,42 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	return value_ret;
 }
 
-/*
-This function works for the Stick handling mode
-data is the space to place the output.
-mode is the current mode of operation
-MODE_SLEEP = 0 --> Retrieve the value of the gyro and send it.
-                   This value will than be add to don't loose the rotation.
-                   Retrieve the value of the small G accel and compare to threshold
-MODE_WAKEUP = 1 --> Record everything and send it.
-                    Retrieve the value of the small G accel and compare to threshold
 
-The return value tell if the acceleration is higher some value (1)
-or below (0)
-
-*/
-uint8_t prepareDataStickSENSOR(uint16_t* out_data)
+// Return the pythagorian magnetic field in 2 bytes.
+// Using two's complement, the return is "g_magneto_data"
+void getMagneto(void)
 {
-	uint8_t tx_data[10];
-	uint8_t data[10];
-
-	uint16_t low_accel_noise = g_settings[6];
-	uint16_t high_accel_noise = g_settings[5];
-	uint16_t gyro_noise = g_settings[7];
-	uint16_t thresh_high = (uint16_t) (g_settings[9])<<8;
-	thresh_high |= g_settings[8];
-	uint8_t ret_value;
-
-	uint16_t value1_x, value1_y, value2_x, value2_y;
+	uint8_t tx_data[7];
+	uint8_t data[7];
 	uint16_t conversion_form;
 
-	uint16_t high_x_g, high_y_g, low_x_g, low_y_g;
-	uint8_t high_x_sign, high_y_sign, low_x_sign, low_y_sign;
-
-	high_x_g = g_calib_axis[0] << 4;
-	high_y_g = g_calib_axis[1] << 4;
-	low_x_g = g_calib_axis[2] << 4;
-	low_y_g = g_calib_axis[3] << 4;
-
-	high_x_sign = g_calib_axis[4];
-	high_y_sign = g_calib_axis[5];
-	low_x_sign = g_calib_axis[6];
-	low_y_sign = g_calib_axis[7];
-
-	ret_value = 0;
-
-	// Get Rotation
-	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
-	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
-	rxtxSPI0(3, g_sensor_tx_buff, data);
-	
-	conversion_form = toUint16(data[1], data[2]);
-	if (conversion_form > gyro_noise)
-		conversion_form -= gyro_noise;
-	else
-		conversion_form = 0;
-
-	out_data[0] = conversion_form;
-	out_data[1] = getSign(data[1], data[2]);
-
-	//Read HIGH-G
-	EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
-	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
-	rxtxSPI0(5, g_sensor_tx_buff, data);
-
-	value1_x = toUint16Error(data[1], data[2], high_x_sign, high_x_g)>>4;
-
-	value1_y = toUint16Error(data[3], data[4], high_y_sign, high_y_g)>>4;
-	if (value1_y > high_accel_noise)
-		value1_y -= high_accel_noise;
-	else
-		value1_y = 0;
-
-	//Read LOW_G 
-	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
-	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	EN_SPI_LIS3MDL;													// enable SPI communication for LSM330 A sensor
+	g_sensor_tx_buff[0] = 0xE8;
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	value2_x = toUint16Error(data[1], data[2], low_x_sign, low_x_g)>>4;
-	if (value2_x > low_accel_noise)
-		value2_x -= low_accel_noise;
-	else
-		value2_x = 0;
+	conversion_form = pythagore3(toDouble(data[1], data[2])/16, 
+		toDouble(data[3], data[4])/16,
+		toDouble(data[5], data[6])/16);
 
-	// Detect threshold, but check also High G sensor to discard 
-	// in error zone.
-	if (value2_x >= thresh_high && value1_x < 52) {
-		ret_value = 1;
-	}
+	g_magneto_data[0] = conversion_form & 0xFF;
+	g_magneto_data[1] = conversion_form>>8 & 0xFF;
 
-	value2_y = toUint16Error(data[3], data[4], low_y_sign, low_y_g)>>4;
-	if (value2_y > low_accel_noise)
-		value2_y -= low_accel_noise;
-	else
-		value2_y = 0;
-
-	if (value2_y >= thresh_high && value1_y < 52) {
-		ret_value = 1;
-	}
-	
-	// If big is smaller than 10G.
-	if (value1_x < 52) {
-		value1_x = value2_x;
-		value1_x += 1<<15;
-	}
-	if (value1_y < 52) {
-		value1_y = value2_y;
-		value1_y += 1<<15;
-	}
-
-	out_data[2] = value1_x;
-	out_data[3] = getSignError(data[1], data[2], low_x_sign, low_x_g);
-	out_data[4] = value1_y;
-	out_data[5] = getSignError(data[3], data[4], low_y_sign, low_y_g);
-
-	// Z data, put a bit to indicate low G.
-	out_data[6] = (toUint16(data[5], data[6])>>4) + (1<<15);
-
-	return ret_value;
 }
 
+// Return the Player ID if one is detected.
+// The value is filled inside "g_player_id"
+// Set all zeros if not found.
+// Return value indicate if player was found or not
+uint8_t getPlayerID(void) 
+{
+
+}
+
+
 // Calbrate the axis.
-void calibrationAxis() {
+// ** Don't care about High G
+void calibrationAxis() 
+{
 	//Step 1, get 10 data of high G and low G
 	uint8_t tx_data[10];
 	uint8_t data[10];
@@ -742,6 +602,7 @@ void calibrationAxis() {
 	
 
 	for (i=0; i<10; i++) {
+		/*
 		//Read HIGH G
 		EN_SPI_H3LIS331;													// enable SPI communication for H3LIS331 sensor
 		g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);	
@@ -752,6 +613,7 @@ void calibrationAxis() {
 
 		conversion_form = (uint16_t)data[3] | ((uint16_t)(data[4]) << 8);
 		high_y_g[i] = (short) conversion_form / 16;
+		*/
 
 		//Read LOW_G 
 		EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
@@ -852,7 +714,7 @@ void initTIMER2(void)
 	NRF_TIMER2->TASKS_CLEAR = 1;               							// clear the task first to be usable for later
 	NRF_TIMER2->PRESCALER = 0x0004;										// 16MHz clock & 16 prescaler means 1MHz timer clock
 	NRF_TIMER2->BITMODE = 0x00;		// Set counter to 16 bit resolution
-	if (ble_mode == BLE_SHOT_MODE)			 {
+	if (ble_mode == BLE_LAUNCH_MODE)			 {
 		NRF_TIMER2->CC[0] = 1000; // 1000Hz
 	} else {
 		NRF_TIMER2->CC[0] = 1250; // 800Hz
@@ -879,72 +741,3 @@ void TIMER2_IRQHandler(void)
 	NRF_TIMER2->EVENTS_COMPARE[0] = 0;									// clear the interrupt flag	
 	NRF_TIMER2->TASKS_CLEAR = 1;										// restart TIMER2
 }
-
-void dispDataH3LIS331(void)
-{
-	uint8_t data[7];
-	int8_t * pdata;
-	uint32_t utmp32;
-	
-	EN_SPI_H3LIS331;
-	// read H3LIS331 accelerometer data x, y & z 
-	g_sensor_tx_buff[0] = (H3LIS331_ACCEL_XOUT_L_REG)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
-	
-	rxtxSPI0(7, g_sensor_tx_buff, data);
-	pdata = data;
-	
-	utmp32 = (((int16_t)pdata[2]<<8)|((int16_t)pdata[1]));
-	printUSART0("H3LIS331 Accel x: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[4]<<8)|((int16_t)pdata[3]));
-	printUSART0("H3LIS331 Accel y: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[6]<<8)|((int16_t)pdata[5]));
-	printUSART0("H3LIS331 Accel z: [%d]\n",&utmp32);	
-	
-}
-
-void dispDataLSM330(void)
-{
-	uint8_t a_data[7];
-	uint8_t g_data[7];
-	int8_t * pdata;
-	uint32_t utmp32;
-	
-	EN_SPI_A_LSM330;
-	// read LSM330 accelerometer data x, y & z 
-	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
-	
-	rxtxSPI0(7, g_sensor_tx_buff, a_data);
-	pdata = a_data;
-	
-	utmp32 = (((int16_t)pdata[2]<<8)|((int16_t)pdata[1]));
-	printUSART0("LSM330 Accel x: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[4]<<8)|((int16_t)pdata[3]));
-	printUSART0("LSM330 Accel y: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[6]<<8)|((int16_t)pdata[5]));
-	printUSART0("LSM330 Accel z: [%d]\n",&utmp32);	
-	
-	
-	EN_SPI_G_LSM330;
-	// read LSM330 gyroscope data x, y & z 
-	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
-	
-	rxtxSPI0(7, g_sensor_tx_buff, g_data);
-	pdata = g_data;
-	
-	utmp32 = (((int16_t)pdata[2]<<8)|((int16_t)pdata[1]));
-	printUSART0("LSM330 Gyro x: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[4]<<8)|((int16_t)pdata[3]));
-	printUSART0("LSM330 Gyro y: [%d]\n",&utmp32);
-	
-	utmp32 = (((int16_t)pdata[6]<<8)|((int16_t)pdata[5]));
-	printUSART0("LSM330 Gyro z: [%d]\n",&utmp32);	
-	
-
-}
-
-

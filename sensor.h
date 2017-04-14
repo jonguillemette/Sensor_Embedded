@@ -177,19 +177,22 @@
 #define SENSOR_COL_SIZE						20
 #define SENSOR_ROW_SIZE						20
 
-#define EN_SPI_H3LIS331		g_spi_cs_pin = (H3LIS331_SPI_CS);
 #define EN_SPI_A_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_A);
 #define EN_SPI_G_LSM330		g_spi_cs_pin = (LSM330_SPI_CS_G);
 #define EN_SPI_ADXL362		g_spi_cs_pin = (ADXL362_SPI_CS);
 #define EN_SPI_BR25S		g_spi_cs_pin = (BR25S_SPI_CS);
+#define EN_SPI_PN532		g_spi_cs_pin = (PN532_SPI_CS);
+#define EN_SPI_LIS3MDL		g_spi_cs_pin = (LIS3MDL_SPI_CS);
+
+
 
 #define SENSOR_READY2READ					0x00
 #define SENSOR_NOT_READY2READ				0x01
 
-uint8_t initH3LIS331(void);
 uint8_t initLSM330(void);
 uint8_t initADXL(void);
 uint8_t initBR25S(void);
+uint8_t initLIS3MDL(void);
 void initSENSOR(void);
 uint8_t prepareDataSENSOR(uint8_t battery);
 uint8_t prepareDataStickSENSOR(uint16_t* out_data);
@@ -205,7 +208,8 @@ void getSettings(uint8_t* ptr);
 void setSettings(uint8_t* ptr);
 void getDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
 void setDatas(uint8_t* ptr, uint8_t nb_data, uint16_t addr);
-
+void getMagneto(void);
+uint8_t getPlayerID(void);
 
 extern volatile uint8_t g_sensor_ridx;
 extern volatile uint8_t g_sensor_widx;
@@ -222,4 +226,6 @@ extern volatile uint16_t g_real_index;
 extern volatile uint8_t g_settings[18];
 extern volatile uint8_t g_valid;
 extern volatile uint16_t g_calib_axis[8];
+extern volatile uint8_t g_magneto_data[2];
+extern volatile uint8_t g_player_id[17];
 #endif

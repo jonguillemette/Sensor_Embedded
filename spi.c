@@ -80,6 +80,7 @@ uint8_t rxtxSPI0(uint16_t transfer_size, const uint8_t *tx_data, uint8_t *rx_dat
 
     /* disable slave (slave select active low) */
     //nrf_gpio_pin_set(SEL_SS_PINOUT);
+    NRF_GPIO->OUTCLR = (1<<g_spi_cs_pin);
 	NRF_GPIO->OUTSET = (1<<g_spi_cs_pin);
     return 1;
 }

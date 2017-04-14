@@ -30,6 +30,8 @@ extern volatile uint8_t g_spi_cs_pin;
 #define SPI0_MISO				11
 #define ADXL362_SPI_CS			10
 #define BR25S_SPI_CS			28
+#define PN532_SPI_CS			13
+#define LIS3MDL_SPI_CS			12
 
 
 #define SPI_DATARATE_125kbps	0x02000000
