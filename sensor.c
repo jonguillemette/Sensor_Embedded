@@ -160,7 +160,7 @@ uint8_t initLSM330(void)
 		return 0x00;													// SPI failed to communicate with sensor
 		
 	tx_data[0] = (LSM330_CTRL_REG4_A)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = (LSM330_A_SCALE_16G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
+	tx_data[1] = (LSM330_A_SCALE_8G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
 	r_val = rxtxSPI0(2, tx_data, rx_data);
 	if(r_val == 0x00)
 		return 0x00;													// SPI failed to communicate with sensor
@@ -205,7 +205,7 @@ uint8_t initPowerLSM330(void)
 		return 0x00;													// SPI failed to communicate with sensor
 		
 	tx_data[0] = (LSM330_CTRL_REG4_A)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = (LSM330_A_SCALE_16G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
+	tx_data[1] = (LSM330_A_SCALE_8G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
 	r_val = rxtxSPI0(2, tx_data, rx_data);
 	if(r_val == 0x00)
 		return 0x00;													// SPI failed to communicate with sensor
@@ -568,31 +568,32 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 		value_ret = 1;
 	}
 	
-	g_cooked_data[0] = conversion_form & 0xFF;
-	g_cooked_data[1] = conversion_form>>8 & 0xFF;
+	//g_cooked_data[0] = conversion_form & 0xFF;
+	//g_cooked_data[1] = conversion_form>>8 & 0xFF;
 
 	// for LSM330 accelerometer we are collecting x, y & z data
 	EN_SPI_A_LSM330;													// enable SPI communication for LSM330 A sensor
 	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_A)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(7, g_sensor_tx_buff, data);
 
-	conversion_form = pythagore2(toDoubleError(data[1], data[2], low_x_sign, low_x_g)/16, 
+	/*conversion_form = pythagore2(toDoubleError(data[1], data[2], low_x_sign, low_x_g)/16, 
 		toDoubleError(data[3], data[4], low_y_sign, low_y_g)/16);
+*/
 
-	/*if (conversion_form > low_accel_noise)
-		conversion_form -= low_accel_noise;
-	else
-		conversion_form = 0;*/
+	g_cooked_data[0] = data[3];
+	g_cooked_data[1] = data[4];
+
+	g_cooked_data[2] = data[5];
+	g_cooked_data[3] = data[6];
 
 	if (thresh_high == 0 && (conversion_form >= thresh_low)) {
 		value_ret = 1;
 	}
-	g_cooked_data[2] = conversion_form & 0xFF;
-	g_cooked_data[3] = conversion_form>>8 & 0xFF;
+	
 
 	// for LSM330 gyroscope we are collecting z data
 	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
-	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	
 	conversion_form = (uint16_t) toDouble(data[1], data[2]);
