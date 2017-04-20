@@ -304,8 +304,6 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 
 	if ((p_pss->conn_handle != BLE_CONN_HANDLE_INVALID) && p_pss->is_notification_supported)
 	{
-		
-		
 		ble_gatts_hvx_params_t hvx_params;
 		
 		memset(&hvx_params, 0, sizeof(hvx_params));
@@ -384,10 +382,10 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 {
                     data[2] = MAGNETO_DATA;
                     for (iter=0; iter<2; iter++) {
-                        data[3+iter] = g_player_id[iter];
+                        data[3+iter] = g_magneto_data[iter];
                     }
                     for (iter=3; iter<17; iter++) {
-                        data[3+iter] = 0;
+                        data[3+iter] = iter;
                     }
                 }
                 break;
@@ -418,7 +416,7 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 
             for (iter_data = 0; iter_data<3; iter_data++) {
                 for (iter=0; iter<6; iter++) {
-                    data[2+iter + (iter_data*6)] = g_data_big_series[g_index_data + iter + (iter_data*6)];
+                    data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
                 }
             }
 
@@ -473,8 +471,18 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
 	}
 
     
-    if ((ble_mode == BLE_LAUNCH_MODE || ble_mode == BLE_FREE_MODE)) {
+    if (ble_mode == BLE_LAUNCH_MODE) {
         return NRF_ERROR_INVALID_STATE; // Send only one data 
+    }
+
+    if (ble_mode == BLE_FREE_MODE) {
+        g_counter++;
+        // Send only 6 data 
+        //if (g_counter >= 1) {
+        //    g_counter = 0;
+            return NRF_ERROR_INVALID_STATE; 
+        //}
+        
     }
 
     return err_code;

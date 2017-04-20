@@ -67,11 +67,11 @@ uint8_t initLIS3MDL(void)
 	
 	EN_SPI_LIS3MDL;	
 	tx_data[0] = 0x60;
-	tx_data[0] = 0x62; //CTRL_REG1 
-	tx_data[0] = 0x00; //CTRL_REG2
-	tx_data[0] = 0x00; //CTRL_REG3
-	tx_data[0] = 0x0C; //CTRL_REG4
-	tx_data[0] = 0x00; //CTRL_REG5 
+	tx_data[1] = 0x62; //CTRL_REG1 
+	tx_data[2] = 0x00; //CTRL_REG2
+	tx_data[3] = 0x00; //CTRL_REG3
+	tx_data[4] = 0x0C; //CTRL_REG4
+	tx_data[5] = 0x00; //CTRL_REG5 
 	r_val = rxtxSPI0(6, tx_data, rx_data);
 	if(r_val == 0x00)													
 		return 0x00;													// SPI failed to communicate with sensor
@@ -528,8 +528,8 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 	g_cooked_data[0] = data[3];
 	g_cooked_data[1] = data[4];
 
-	g_cooked_data[2] = data[5];
-	g_cooked_data[3] = data[6];
+	g_cooked_data[2] = data[1];
+	g_cooked_data[3] = data[2];
 
 	if (thresh_high == 0 && (conversion_form >= thresh_low)) {
 		value_ret = 1;
@@ -538,7 +538,7 @@ uint8_t prepareDataSENSOR(uint8_t battery)
 
 	// for LSM330 gyroscope we are collecting z data
 	EN_SPI_G_LSM330;													// enable SPI communication for LSM330 G sensor
-	g_sensor_tx_buff[0] = (LSM330_XOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
+	g_sensor_tx_buff[0] = (LSM330_ZOUT_L_REG_G)|(SPI_READ_DATA)|(SPI_MULTI_TRANS);
 	rxtxSPI0(3, g_sensor_tx_buff, data);
 	
 	conversion_form = (uint16_t) toDouble(data[1], data[2]);
@@ -558,9 +558,12 @@ void getMagneto(void)
 	uint8_t data[7];
 	uint16_t conversion_form;
 
-	EN_SPI_LIS3MDL;													// enable SPI communication for LSM330 A sensor
-	g_sensor_tx_buff[0] = 0xE8;
-	rxtxSPI0(7, g_sensor_tx_buff, data);
+	EN_SPI_LIS3MDL;
+
+	tx_data[0] = 0xE8;
+	//tx_data[0] = 0x8F;
+	
+	rxtxSPI0(7, tx_data, data);
 
 	conversion_form = pythagore3(toDouble(data[1], data[2])/16, 
 		toDouble(data[3], data[4])/16,

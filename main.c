@@ -231,7 +231,7 @@ volatile uint8_t g_power_down = 1;
 // 0 = Sleep after search_counter
 
 //Launch mode
-volatile uint8_t g_detect_player;
+volatile uint8_t g_detect_player = 0;
 volatile uint8_t g_player_id[17];
 volatile uint8_t g_magneto_data[2];
 
@@ -853,7 +853,7 @@ int main(void)
                 }
                 g_index_data += 6;
                 if (g_state <= 1) {
-                    if (g_index_data >= 108 && g_valid) { //Send data to memory
+                    if (g_index_data >= 30 && g_valid) { //Send data to memory
                         if (g_handle_settings) {
                             g_handle_settings = 0;
                             setSettings(g_settings_new);
@@ -872,10 +872,9 @@ int main(void)
 
                 // State machine for Curling
                 
-                g_detect_player = getPlayerID();
+                //g_detect_player = getPlayerID();
                 getMagneto();
-                // Testing
-                g_detect_player = 0; // Force no detection
+                
             } else if (ble_mode == BLE_CALIB_AXIS_MODE) {
                 calibrationAxis();
                 nrf_delay_ms(20);
