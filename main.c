@@ -172,10 +172,6 @@ volatile uint8_t g_battery_int;
 // Shot mode
 volatile uint8_t settings_flag = 0;
 
-// Launch mode
-volatile uint8_t g_detect_player = 0;
-volatile uint8_t g_player_id[17];
-volatile uint8_t g_magneto_data[2];
 
 // Mode management
 volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
@@ -187,6 +183,7 @@ volatile uint8_t g_settings[18];
 volatile uint8_t g_settings_new[18];
 volatile uint8_t g_handle_settings = 0;
 volatile uint8_t g_data_send[30]; //Data at the same time
+volatile uint8_t g_data_big_series[108];
 volatile uint8_t g_index_data = 0; 
 volatile uint16_t g_real_index = 0;
 volatile uint8_t g_valid = 1;
@@ -233,6 +230,10 @@ volatile uint8_t g_power_down = 1;
 // 1 = Sleep after max_counter
 // 0 = Sleep after search_counter
 
+//Launch mode
+volatile uint8_t g_detect_player;
+volatile uint8_t g_player_id[17];
+volatile uint8_t g_magneto_data[2];
 
 
 
@@ -848,11 +849,11 @@ int main(void)
 
                 for (i=0; i<6; i++) {
                     g_data_send[g_index_data+i] = g_cooked_data[i];
-                    
+                    g_data_big_series[g_index_data+i] = g_cooked_data[i];
                 }
                 g_index_data += 6;
                 if (g_state <= 1) {
-                    if (g_index_data >= 30 && g_valid) { //Send data to memory
+                    if (g_index_data >= 108 && g_valid) { //Send data to memory
                         if (g_handle_settings) {
                             g_handle_settings = 0;
                             setSettings(g_settings_new);
@@ -860,11 +861,11 @@ int main(void)
                         } else {
                             getSettings(g_settings);
                
-                            setDatas(g_data_send, 30, g_real_index);
-                            g_real_index += 32; // Page are 32.
+                            //setDatas(g_data_send, 30, g_real_index);
+                            //g_real_index += 32; // Page are 32.
                             g_index_data = 0;
-                            if (g_real_index >= BR25S_CIRCULAR_BUFFER)
-                                g_real_index = 0;
+                            /*if (g_real_index >= BR25S_CIRCULAR_BUFFER)
+                                g_real_index = 0;*/
                         }
                     }
                 }

@@ -9,6 +9,8 @@ volatile uint8_t g_ble_conn = 0;
 
 extern int m_send_packet;
 
+volatile uint8_t g_counter = 0;
+
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init)
 {/// init BLE physical sensor service
     uint32_t   err_code;
@@ -410,14 +412,16 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             break;
         case BLE_FREE_MODE:
         case BLE_OTHER_MODE: 
+            g_counter++;
             data[0] = DATA_DRAFT;
             data[1] = g_battery_int;
 
             for (iter_data = 0; iter_data<3; iter_data++) {
                 for (iter=0; iter<6; iter++) {
-                    data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
+                    data[2+iter + (iter_data*6)] = g_data_big_series[g_index_data + iter + (iter_data*6)];
                 }
             }
+
             break;
         }
 		hvx_params.p_data = data;

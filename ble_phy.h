@@ -132,6 +132,8 @@ extern volatile uint16_t g_real_index;
 extern volatile uint16_t g_remember;
 extern volatile uint16_t g_shot_br25s_index;
 extern volatile uint8_t g_data_send[30];
+extern volatile uint8_t g_data_big_series[108];
+extern volatile uint8_t g_index_data; 
 extern volatile uint16_t g_left;
 extern volatile uint16_t g_skip[5];
 extern volatile uint16_t g_index_skip;
