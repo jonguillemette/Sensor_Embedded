@@ -143,7 +143,7 @@ uint8_t initLSM330(void)
 		return 0x00;													// SPI failed to communicate with sensor
 		
 	tx_data[0] = (LSM330_CTRL_REG4_G)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = (LSM330_G_BDU)|(LSM330_G_SCALE_2000);					// 2000dps range + disable data update during read
+	tx_data[1] = (LSM330_G_BDU)|(LSM330_G_SCALE_250);					// 2000dps range + disable data update during read
 	r_val = rxtxSPI0(2, tx_data, rx_data);
 	if(r_val == 0x00)	
 		return 0x00;													// SPI failed to communicate with sensor
@@ -160,7 +160,7 @@ uint8_t initLSM330(void)
 		return 0x00;													// SPI failed to communicate with sensor
 		
 	tx_data[0] = (LSM330_CTRL_REG4_A)|(SPI_WRITE_DATA)|(SPI_SINGLE_TRANS);
-	tx_data[1] = (LSM330_A_SCALE_8G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
+	tx_data[1] = (LSM330_A_SCALE_2G)|(LSM330_A_HIGH_RES);				// 16g range + high resolution
 	r_val = rxtxSPI0(2, tx_data, rx_data);
 	if(r_val == 0x00)
 		return 0x00;													// SPI failed to communicate with sensor
