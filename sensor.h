@@ -226,6 +226,10 @@ extern volatile uint16_t g_real_index;
 extern volatile uint8_t g_settings[18];
 extern volatile uint8_t g_valid;
 extern volatile uint16_t g_calib_axis[8];
-extern volatile uint8_t g_magneto_data[2];
+extern volatile uint8_t g_magneto_data[4];
 extern volatile uint8_t g_player_id[17];
+extern volatile uint16_t g_last_magneto;
+extern volatile uint16_t g_max_magneto;
+extern volatile uint16_t g_last_delta_magneto;
+extern volatile uint16_t g_max_delta_magneto;
 #endif

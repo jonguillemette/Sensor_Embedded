@@ -9,7 +9,8 @@ volatile uint8_t g_ble_conn = 0;
 
 extern int m_send_packet;
 
-volatile uint8_t g_counter = 0;
+
+
 
 uint32_t initBlePHYSEN(ble_pss_t * p_pss, const ble_pss_init_t * p_pss_init)
 {/// init BLE physical sensor service
@@ -381,10 +382,10 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
                 else
                 {
                     data[2] = MAGNETO_DATA;
-                    for (iter=0; iter<2; iter++) {
+                    for (iter=0; iter<4; iter++) {
                         data[3+iter] = g_magneto_data[iter];
                     }
-                    for (iter=3; iter<17; iter++) {
+                    for (iter=4; iter<17; iter++) {
                         data[3+iter] = iter;
                     }
                 }
@@ -413,13 +414,13 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
             g_counter++;
             data[0] = DATA_DRAFT;
             data[1] = g_battery_int;
-
+            
             for (iter_data = 0; iter_data<3; iter_data++) {
                 for (iter=0; iter<6; iter++) {
-                    data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
+                    //data[2+iter + (iter_data*6)] = g_data_send[iter + (iter_data*6)];
+                    data[2+iter + (iter_data*6)] = g_data_big_series[iter + (iter_data*6)];
                 }
             }
-
             break;
         }
 		hvx_params.p_data = data;
@@ -476,12 +477,14 @@ uint32_t sendDataPHYSENS(ble_pss_t * p_pss)
     }
 
     if (ble_mode == BLE_FREE_MODE) {
-        g_counter++;
+        /*g_counter++;
         // Send only 6 data 
-        //if (g_counter >= 1) {
-        //    g_counter = 0;
+        if (g_counter >= 6) {
+            g_counter = 0;
             return NRF_ERROR_INVALID_STATE; 
-        //}
+        }*/
+        // Return at once
+        return NRF_ERROR_INVALID_STATE; 
         
     }
 

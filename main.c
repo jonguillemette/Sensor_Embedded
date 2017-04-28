@@ -172,7 +172,6 @@ volatile uint8_t g_battery_int;
 // Shot mode
 volatile uint8_t settings_flag = 0;
 
-
 // Mode management
 volatile ble_mode_t ble_mode = BLE_SETTINGS_MODE;
 
@@ -192,7 +191,6 @@ volatile uint16_t g_left = 0;
 // EEPROM READ
 volatile uint16_t g_skip[5] = {6, 6, 6, 6, 8};
 volatile uint16_t g_index_skip = 0;
-
 
 // Sending state machine
 uint16_t g_start;
@@ -230,10 +228,22 @@ volatile uint8_t g_power_down = 1;
 // 1 = Sleep after max_counter
 // 0 = Sleep after search_counter
 
-//Launch mode
+// Launch mode
 volatile uint8_t g_detect_player = 0;
 volatile uint8_t g_player_id[17];
-volatile uint8_t g_magneto_data[2];
+volatile uint8_t g_magneto_data[4];
+volatile uint8_t g_follow_line = 0;
+volatile uint8_t g_full = 0;
+volatile uint16_t g_last_magneto = 0;
+volatile uint16_t g_max_magneto = 0;
+volatile uint16_t g_last_delta_magneto = 0;
+volatile uint16_t g_max_delta_magneto = 0;
+
+
+// Multi send
+volatile uint8_t g_counter = 0;
+
+
 
 
 
@@ -560,7 +570,11 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 
     if (g_ble_conn) {
         while(true) {
+            g_follow_line = 0;
+            g_full = 0;
             uint32_t err_code = sendDataPHYSENS(&m_pss);
+            g_max_magneto = 0;
+            g_max_delta_magneto = 0;
             if (err_code == BLE_ERROR_NO_TX_BUFFERS ||
                 err_code == NRF_ERROR_INVALID_STATE || 
                 err_code == BLE_ERROR_GATTS_SYS_ATTR_MISSING) {
@@ -568,6 +582,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
             } else {
                 
             }
+            
         }
     }
     
@@ -846,33 +861,25 @@ int main(void)
                     // Free mode send only draft data
                     value = 0;
                 }
-
                 for (i=0; i<6; i++) {
-                    g_data_send[g_index_data+i] = g_cooked_data[i];
+                    //g_data_send[g_index_data+i] = g_cooked_data[i];
                     g_data_big_series[g_index_data+i] = g_cooked_data[i];
                 }
+            
                 g_index_data += 6;
                 if (g_state <= 1) {
-                    if (g_index_data >= 30 && g_valid) { //Send data to memory
+                    if (g_index_data >= 18 && g_valid) { //Send data to memory
                         if (g_handle_settings) {
                             g_handle_settings = 0;
                             setSettings(g_settings_new);
-                            g_index_data = 0; // Loose for 6.25 ms of data
                         } else {
                             getSettings(g_settings);
-               
-                            //setDatas(g_data_send, 30, g_real_index);
-                            //g_real_index += 32; // Page are 32.
-                            g_index_data = 0;
-                            /*if (g_real_index >= BR25S_CIRCULAR_BUFFER)
-                                g_real_index = 0;*/
                         }
+                        g_index_data = 0;
                     }
                 }
-
                 // State machine for Curling
-                
-                //g_detect_player = getPlayerID();
+                // g_detect_player = getPlayerID();
                 getMagneto();
                 
             } else if (ble_mode == BLE_CALIB_AXIS_MODE) {

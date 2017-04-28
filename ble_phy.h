@@ -142,6 +142,8 @@ extern volatile uint16_t g_calib_axis[8];
 extern volatile uint8_t g_power_down;
 extern volatile uint8_t g_detect_player;
 extern volatile uint8_t g_player_id[17];
+extern volatile uint8_t g_counter;
+extern volatile uint8_t g_follow_line;
 
 #endif 
 

@@ -557,6 +557,7 @@ void getMagneto(void)
 	uint8_t tx_data[7];
 	uint8_t data[7];
 	uint16_t conversion_form;
+	uint16_t delta_conversion_form;
 
 	EN_SPI_LIS3MDL;
 
@@ -569,9 +570,30 @@ void getMagneto(void)
 		toDouble(data[3], data[4])/16,
 		toDouble(data[5], data[6])/16);
 
-	g_magneto_data[0] = conversion_form & 0xFF;
-	g_magneto_data[1] = conversion_form>>8 & 0xFF;
+	if (g_last_magneto > conversion_form) 
+	{
+		delta_conversion_form = g_last_magneto - conversion_form;
+	}
+	else
+	{
+		delta_conversion_form = conversion_form - g_last_magneto;
+	}
 
+	if (conversion_form > g_max_magneto) {
+		g_max_magneto = conversion_form;
+	}
+	if (delta_conversion_form > g_max_delta_magneto) {
+		g_max_delta_magneto = delta_conversion_form;
+	}
+
+	g_magneto_data[0] = g_max_magneto & 0xFF;
+	g_magneto_data[1] = g_max_magneto >> 8 & 0xFF;
+
+	g_magneto_data[2] = g_max_delta_magneto & 0xFF;
+	g_magneto_data[3] = g_max_delta_magneto >> 8 & 0xFF;
+
+	g_last_magneto = conversion_form;
+	g_last_delta_magneto = delta_conversion_form;
 }
 
 // Return the Player ID if one is detected.
